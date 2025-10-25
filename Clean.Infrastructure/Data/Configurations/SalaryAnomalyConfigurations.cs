@@ -20,6 +20,7 @@ public class SalaryAnomalyConfigurations : IEntityTypeConfiguration<SalaryAnomal
 
         builder.HasOne(sa => sa.Employee)
             .WithMany(e => e.SalaryAnomalies)
-            .HasForeignKey(sa => sa.EmployeeId);
+            .HasForeignKey(sa => sa.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

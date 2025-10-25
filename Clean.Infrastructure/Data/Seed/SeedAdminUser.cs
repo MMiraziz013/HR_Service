@@ -1,5 +1,6 @@
 using Clean.Application.Abstractions;
 using Clean.Domain.Entities;
+using Clean.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 
 namespace Clean.Infrastructure.Data.Seed;
@@ -32,6 +33,7 @@ public class SeedAdminUser : IDataSeeder
                 UserName = adminEmail,
                 Email = adminEmail,
                 EmailConfirmed = true,
+                Role = UserRole.Admin
             };
 
             var result = await _userManager.CreateAsync(admin, adminPassword);

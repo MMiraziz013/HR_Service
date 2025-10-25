@@ -1,6 +1,5 @@
 namespace Clean.Application.Security.Permission;
 
-//TODO: configure roles for HR service
 public class RoleConstants
 {
     public const string Admin = "Admin";

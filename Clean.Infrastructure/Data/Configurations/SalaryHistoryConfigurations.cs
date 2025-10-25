@@ -23,6 +23,7 @@ public class SalaryHistoryConfigurations : IEntityTypeConfiguration<SalaryHistor
 
         builder.HasOne(sh => sh.Employee)
             .WithMany(e => e.SalaryHistories)
-            .HasForeignKey(sh => sh.EmployeeId);
+            .HasForeignKey(sh => sh.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

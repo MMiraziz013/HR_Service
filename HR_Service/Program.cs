@@ -35,6 +35,7 @@ public class Program
         Log.Information("✅ Serilog initialized successfully.");
 
         var builder = WebApplication.CreateBuilder(args);
+        
         builder.Host.UseSerilog();
 
         builder.Services.AddControllers()
@@ -111,14 +112,9 @@ public class Program
             await db.MigrateAsync();
 
             var services = scope.ServiceProvider;
-            
-            //  Identity data seeding to seed roles and permissions
-            var identitySeeder = services.GetRequiredService<IdentitySeeder>();
-            await identitySeeder.SeedAsync();
 
-            // Seeding other entities (Admin, HRs, Employees)
-            var identityInitializer = services.GetRequiredService<SeedDataInitializer>();
-            await identityInitializer.InitializeAsync();
+            var seeder = services.GetRequiredService<SeedDataInitializer>();
+            await seeder.InitializeAsync();
         }
 
         app.UseSwagger();

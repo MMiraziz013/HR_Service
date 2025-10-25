@@ -13,7 +13,7 @@ namespace Clean.Application.Services.JWT;
 public class JwtTokenService : IJwtTokenService
 {
     private readonly JwtOptions _options;
-    private readonly UserManager<User> _userManager;
+    private readonly UserManager<Domain.Entities.User> _userManager;
     private readonly RoleManager<IdentityRole<int>> _roleManager;
     private readonly IConfiguration _configuration;
 

@@ -30,6 +30,7 @@ public class PayrollRecordConfigurations :IEntityTypeConfiguration<PayrollRecord
 
          builder.HasOne(pr => pr.Employee)
              .WithMany(e => e.PayrollRecords)
-             .HasForeignKey(pr => pr.EmployeeId);
+             .HasForeignKey(pr => pr.EmployeeId)
+             .OnDelete(DeleteBehavior.Restrict);
     }
 }

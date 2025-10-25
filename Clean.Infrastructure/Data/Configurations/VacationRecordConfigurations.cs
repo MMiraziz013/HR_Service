@@ -29,6 +29,7 @@ public class VacationRecordConfigurations : IEntityTypeConfiguration<VacationRec
 
         builder.HasOne(vr => vr.Employee)
             .WithMany(e => e.VacationRecords)
-            .HasForeignKey(vr => vr.EmployeeId);
+            .HasForeignKey(vr => vr.EmployeeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

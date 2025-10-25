@@ -1,4 +1,5 @@
-﻿using Clean.Application.Services.JWT;
+﻿using Clean.Application.Abstractions;
+using Clean.Application.Services.JWT;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -9,6 +10,7 @@ public static class ApplicationInjection
 
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddTransient<IUserService, UserService>();
         services.AddTransient<IJwtTokenService, JwtTokenService>();
         
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));

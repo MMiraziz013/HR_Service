@@ -9,7 +9,6 @@ public class PayrollRecord
     public decimal Deductions { get; set; }
     public decimal NetPay => GrossPay - Deductions;
     public DateTime CreatedAt { get; set; }
-
     public int EmployeeId { get; set; }
     public Employee Employee { get; set; } = default!;
 }
