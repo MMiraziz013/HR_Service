@@ -30,7 +30,7 @@ public class SeedAdminUser : IDataSeeder
         {
             admin = new User
             {
-                UserName = adminEmail,
+                UserName = "admin",
                 Email = adminEmail,
                 EmailConfirmed = true,
                 Role = UserRole.Admin

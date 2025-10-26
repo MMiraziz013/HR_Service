@@ -5,13 +5,15 @@ namespace Clean.Application.Abstractions;
 
 public interface IUserService
 {
-    public Task<Response<string>> RegisterUserAsync(RegisterUserDto register);
+    Task<Response<string>> RegisterUserAsync(RegisterUserDto register);
 
-    public Task<Response<object>> LoginUserAsync(LoginDto login);
+    Task<Response<object>> LoginUserAsync(LoginDto login);
     
-    public Task<Response<UserProfileDto>> GetUserProfileAsync(string userId);
+    Task<Response<UserProfileDto>> GetUserProfileAsync(int userId);
     
-    public Task<Response<string>> UpdatePasswordAsync(UpdatePasswordDto dto, string userId);
+    Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync();
+    
+    Task<Response<string>> UpdatePasswordAsync(UpdatePasswordDto dto, int userId);
 
-    public Task<Response<string>> UpdateMyProfileAsync(UpdateUserProfileDto update, string userId);
+    Task<Response<UserProfileDto>> UpdateMyProfileAsync(UpdateUserProfileDto update, int userId);
 }
