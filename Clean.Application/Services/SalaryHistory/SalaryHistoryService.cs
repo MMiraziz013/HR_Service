@@ -8,16 +8,26 @@ namespace Clean.Application.Services.SalaryHistory;
 public class SalaryHistoryService : ISalaryHistoryService
 {
     private readonly ISalaryHistoryRepository _repository;
-
-    public SalaryHistoryService(ISalaryHistoryRepository repository)
+private readonly IEmployeeRepository _employeeRepository;
+private readonly IDepartmentRepository _departmentRepository;
+    public SalaryHistoryService(ISalaryHistoryRepository repository, IEmployeeRepository employeeRepository)
     {
         _repository = repository;
+        _employeeRepository = employeeRepository;
     }
     
     public async Task<Response<bool>> AddSalaryHistoryAsync(AddSalaryHistoryDto dto)
     {
+            
         try
         {
+            var employee=await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
+            if (employee == null)
+            {
+                return new Response<bool>(
+                    HttpStatusCode.BadRequest,
+                    message: "Employee with this id is not found");
+            } 
             var entity = new Domain.Entities.SalaryHistory
             {
                 EmployeeId = dto.EmployeeId,
@@ -62,13 +72,13 @@ public class SalaryHistoryService : ISalaryHistoryService
     }
 
     
-    public async Task<Response<List<GetSalaryHistoryDto>>> GetSalaryHistoryByEmployeeId(int id)
+    public async Task<Response<List<GetSalaryHistoryDto>>> GetSalaryHistoryByEmployeeIdAsync(int id)
     {
         try
         {
             var histories = await _repository.GetSalaryHistoryByEmployeeIdAsync(id);
 
-            if (histories == null || !histories.Any())
+            if (!histories.Any())
             {
                 return new Response<List<GetSalaryHistoryDto>>(
                     HttpStatusCode.NotFound,
@@ -82,7 +92,7 @@ public class SalaryHistoryService : ISalaryHistoryService
                 Month = h.Month,
                 BaseAmount = h.BaseAmount,
                 BonusAmount = h.BonusAmount,
-                ExpectedTotal = h.ExpectedTotal
+                ExpectedTotal = h.ExpectedTotal,
             }).ToList();
 
             return new Response<List<GetSalaryHistoryDto>>(
@@ -102,7 +112,7 @@ public class SalaryHistoryService : ISalaryHistoryService
     }
 
 
-    public async Task<Response<GetSalaryHistoryDto>> GetSalaryHistoryById(int id)
+    public async Task<Response<GetSalaryHistoryWithEmployeeDto>> GetSalaryHistoryByIdAsync(int id)
     {
         try
         {
@@ -110,24 +120,23 @@ public class SalaryHistoryService : ISalaryHistoryService
 
             if (history == null)
             {
-                return new Response<GetSalaryHistoryDto>(
+                return new Response<GetSalaryHistoryWithEmployeeDto>(
                     HttpStatusCode.NotFound,
                     new List<string> { $"Salary history with ID {id} not found." }
                 );
             }
+             var employee=await _employeeRepository.GetEmployeeByIdAsync(history.EmployeeId);
+          
 
-            var dto = new GetSalaryHistoryDto
+             var dto = new GetSalaryHistoryWithEmployeeDto
             {
                 Id = history.Id,
                 Month = history.Month,
-                BaseAmount = history.BaseAmount,
-                BonusAmount = history.BonusAmount,
                 ExpectedTotal = history.ExpectedTotal,
-                // Optional: include employee info if your DTO supports it
-                //EmployeeName = history.Employee.FullName
+                EmployeeName=employee!.FirstName
             };
 
-            return new Response<GetSalaryHistoryDto>(
+            return new Response<GetSalaryHistoryWithEmployeeDto>(
                 HttpStatusCode.OK,
                 "Salary history retrieved successfully.",
                 dto
@@ -135,7 +144,7 @@ public class SalaryHistoryService : ISalaryHistoryService
         }
         catch (Exception)
         {
-            return new Response<GetSalaryHistoryDto>(
+            return new Response<GetSalaryHistoryWithEmployeeDto>(
                 HttpStatusCode.InternalServerError,
                 new List<string> { "An unexpected error occurred while retrieving salary history." }
             );
@@ -143,8 +152,122 @@ public class SalaryHistoryService : ISalaryHistoryService
     }
 
 
-    public Task<Response<bool>> DeleteSalaryHistory(int id)
+    public async Task<Response<bool>> DeleteSalaryHistoryAsync(int id)
     {
-        throw new NotImplementedException();
+        var isDeleted = await _repository.DeleteAsync(id);
+
+        if (!isDeleted)
+        {
+            return new Response<bool>(
+                HttpStatusCode.NotFound,
+                message: "Salary history not found or could not be deleted.",
+                data: false
+            );
+        }
+        
+        return new Response<bool>(
+            HttpStatusCode.OK,
+            message: "Salary history deleted successfully.",
+            data: true
+        );
+    }
+
+    public async Task<Response<GetSalaryHistoryWithEmployeeDto>> GetSalaryHistoryByMonthAsync(int employeeId, DateOnly month)
+    {
+        //TODO: when employee service will be ready, if statement should be added which checks whether employee id exists in db 
+        
+        try
+        {
+            var employee = await _employeeRepository.GetEmployeeByIdAsync(employeeId);
+            var salary = await _repository.GetSalaryByMonth(employeeId, month);
+
+            // Map entity to DTO
+            var dto = new GetSalaryHistoryWithEmployeeDto
+            {
+                Id = salary.Id,
+                EmployeeId = salary.EmployeeId,
+                ExpectedTotal = salary.ExpectedTotal,
+                Month = salary.Month,
+                EmployeeName = employee!.FirstName
+            };
+
+            return new Response<GetSalaryHistoryWithEmployeeDto>(
+                HttpStatusCode.OK,
+                "Salary history retrieved successfully.",
+                dto
+            );
+        }
+        catch (ArgumentException ex)
+        {
+            return new Response<GetSalaryHistoryWithEmployeeDto>(
+                HttpStatusCode.NotFound,
+                ex.Message
+            );
+        }
+    }
+
+  
+    public async Task<Response<TotalPaidDto>> GetTotalPaidAmountAsync(int employeeId, DateOnly startDate, DateOnly endDate)
+    {
+        //TODO: when employee service will be ready, if statement should be added which checks whether employee id exists in db 
+        try
+        {
+            var employee = await _employeeRepository.GetEmployeeByIdAsync(employeeId);
+            var total = await _repository.GetTotalPaidAmountAsync(employeeId, startDate, endDate);
+
+            var dto = new TotalPaidDto
+            {
+                TotalPaidAmount = total,
+                EmployeeId = employeeId,
+                StartDate = startDate,
+                EndDate = endDate,
+                EmployeeName = employee!.FirstName
+            };
+            return new Response<TotalPaidDto>(
+                HttpStatusCode.OK,
+                "Total paid amount retrieved successfully.",
+                dto
+            );
+        }
+        catch (Exception ex)
+        {
+            return new Response<TotalPaidDto>(
+                HttpStatusCode.InternalServerError,
+                message: $"An error occured: {ex.Message}" 
+            );
+        }
+    }
+
+    public async Task<Response<GetTotalPaidForDepartmentDto>> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateOnly startDate, DateOnly endDate)
+    {
+       // TODO : add department name when department service is ready, so not only dep id is shown but also name 
+       try
+       {
+           var department = await _departmentRepository.GetDepartmentByIdAsync(departmentId);
+           var total = await _repository.GetTotalPaidAmountByDepartmentAsync(departmentId, startDate, endDate);
+
+           var dto = new GetTotalPaidForDepartmentDto
+           {
+               TotalPaidAmount = total,
+               DepartmentId = departmentId,
+               StartDate = startDate,
+               EndDate = endDate,
+               DepartmentName = department!.Name
+           };
+           return new Response<GetTotalPaidForDepartmentDto>(
+               HttpStatusCode.OK,
+               message: "Total paid amount for department retrieved successfully.",
+               dto
+           );
+
+       }
+       catch (Exception ex)
+       {
+           return new Response<GetTotalPaidForDepartmentDto>(
+               HttpStatusCode.InternalServerError,
+               message: $"An error occured: {ex.Message}" 
+           );
+       }
+       
     }
 }

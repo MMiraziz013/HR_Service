@@ -91,26 +91,37 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
         return true;
     }
 
-    public async Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateTime startDate, DateTime endDate)
+    public async Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateOnly startDate, DateOnly endDate)
     {
         var totalPaidAmount = await _context.SalaryHistories
             .Where(s => s.EmployeeId == employeeId
-                        && s.Month >= DateOnly.FromDateTime(startDate)
-                        && s.Month <= DateOnly.FromDateTime(endDate))
+                        && s.Month >= startDate
+                        && s.Month <= endDate)
             .SumAsync(s => s.ExpectedTotal);
 
         return totalPaidAmount;
     }
 
-    public async Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateTime startDate, DateTime endDate)
+    public async Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateOnly startDate, DateOnly endDate)
     {
         var totalPaidAmount = await _context.SalaryHistories
+            .Include(s => s.Employee) // ensure Employee is loaded
             .Where(s => s.Employee.DepartmentId == departmentId
-                        && s.Month >= DateOnly.FromDateTime(startDate)
-                        && s.Month <= DateOnly.FromDateTime(endDate))
-            .SumAsync(s => s.ExpectedTotal);
+                        && s.Month >= startDate
+                        && s.Month <= endDate)
+            .SumAsync(s => (decimal?)s.ExpectedTotal) ?? 0;
 
         return totalPaidAmount;
+    }
+
+    public async Task<string> GetEmployeeNameAsync(int employeeId)
+    {
+        var employee = await _context.Employees
+            .Where(e => e.Id == employeeId)
+            .Select(e => e.FirstName)
+            .FirstOrDefaultAsync();
+
+        return employee ?? "Not found";
     }
 
 }

@@ -2,6 +2,7 @@
 using Clean.Application.Services.Department;
 using Clean.Application.Services.Employee;
 using Clean.Application.Services.JWT;
+using Clean.Application.Services.SalaryHistory;
 using Clean.Application.Services.User;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +19,7 @@ public static class ApplicationInjection
         services.AddTransient<IEmployeeService, EmployeeService>();
         services.AddTransient<IDepartmentService, DepartmentService>();
         services.AddTransient<IJwtTokenService, JwtTokenService>();
-        
+        services.AddTransient<ISalaryHistoryService, SalaryHistoryService>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<JwtTokenService>(configuration.GetSection(JwtOptions.SectionName));
 

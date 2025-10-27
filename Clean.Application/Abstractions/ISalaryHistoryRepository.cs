@@ -12,9 +12,9 @@ public interface ISalaryHistoryRepository
     Task<bool> DeleteAsync(int id);
     Task<SalaryHistory> GetSalaryByMonth(int employeeId, DateOnly month);
     Task<bool> ExistForMonth(int employeeId, DateOnly month);
-    Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateTime startDate, DateTime endDate);
-    Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateTime startDate, DateTime endDate);
+    Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateOnly startDate, DateOnly endDate);
+    Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateOnly startDate, DateOnly endDate);
+    Task<string> GetEmployeeNameAsync(int employeeId);
 
-    
 
 }
