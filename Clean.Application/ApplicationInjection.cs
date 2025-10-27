@@ -2,6 +2,7 @@
 using Clean.Application.Services.Department;
 using Clean.Application.Services.Employee;
 using Clean.Application.Services.JWT;
+using Clean.Application.Services.User;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 

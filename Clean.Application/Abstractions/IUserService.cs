@@ -10,8 +10,8 @@ public interface IUserService
     Task<Response<object>> LoginUserAsync(LoginDto login);
     
     Task<Response<UserProfileDto>> GetUserProfileAsync(int userId);
-    
-    Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync();
+
+    Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync(string? search = null);
     
     Task<Response<string>> UpdatePasswordAsync(UpdatePasswordDto dto, int userId);
 
