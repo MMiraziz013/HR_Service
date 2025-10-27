@@ -1,3 +1,4 @@
+using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Responses;
 using Clean.Domain.Entities;
@@ -6,11 +7,11 @@ namespace Clean.Application.Abstractions;
 
 public interface IEmployeeService
 {
-    //TODO: Finish Employee Service methods
+    Task<PaginatedResponse<GetEmployeeDto>> GetEmployeesAsync(EmployeePaginationFilter filter);
+
+    Task<Response<GetEmployeeDto?>> GetEmployeeByIdAsync(int id);
+
+    Task<Response<GetEmployeeDto>> UpdateEmployeeAsync(UpdateEmployeeDto dto);
     
-    Task<List<Employee>> GetEmployeesAsync(PaginationFilter filter);
-    
-    Task<Employee?> GetEmployeeByIdAsync(int id);
-    
-    Task<Employee?> GetEmployeeByFirstNameAsync(string firstname);
+    Task<Response<bool>> DeactivateEmployeeAsync(int id);
 }

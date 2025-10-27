@@ -1,6 +1,6 @@
 namespace Clean.Application.Dtos.Department;
 
-public class GetDepartmentDto
+public class UpdateDepartmentDto
 {
     public int Id { get; set; }
     public string Name { get; set; }

@@ -7,9 +7,15 @@ public interface IDepartmentService
 {
     public Task<Response<bool>> AddDepartmentAsync(AddDepartmentDto dto);
 
-    public Task<Response<List<GetDepartmentDto>>> GetDepartmentsAsync();
+    Task<Response<List<GetDepartmentDto>>> GetDepartmentsAsync(string? search = null);
 
-    Task<Response<List<GetDepartmentWithEmployeesDto>>> GetDepartmentsWithEmployeesAsync();
+    Task<Response<List<GetDepartmentWithEmployeesDto>>> GetDepartmentsWithEmployeesAsync(string? search = null);
 
-    //TODO: Finish the Department Methods
+    Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id);
+
+    Task<Response<GetDepartmentWithEmployeesDto?>> GetDepartmentByIdWithEmployeesAsync(int id);
+
+    Task<Response<GetDepartmentDto>> UpdateDepartmentAsync(UpdateDepartmentDto dto);
+
+    Task<Response<bool>> DeleteDepartmentAsync(int id);
 }
