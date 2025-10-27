@@ -7,62 +7,60 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-public class UserController : Controller
+[Route("api/users")]
+public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
 
-    public UserController(IUserService userService)
+    public UsersController(IUserService userService)
     {
         _userService = userService;
     }
 
-    [HttpPost("register")]
-    public async Task<IActionResult> RegisterUserAsync([FromBody] RegisterUserDto register)
-    {
-        var response = await _userService.RegisterUserAsync(register);
-        return Ok(response);
-    }
-
-    [HttpPost("login")]
-    public async Task<IActionResult> LoginUserAsync([FromBody] LoginDto dto)
-    {
-        var response = await _userService.LoginUserAsync(dto);
-        return Ok(response);
-    }
-    
-    [HttpGet("get-user-info")]
+    /// <summary>
+    /// Get information about the currently logged-in user.
+    /// </summary>
+    [HttpGet("me")]
     [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
-    public async Task<IActionResult> GetUserInfoAsync()
+    public async Task<IActionResult> GetMyInfoAsync()
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.GetUserProfileAsync(userId);
         return Ok(response);
     }
 
-    [HttpGet("get-all-users")]
+    /// <summary>
+    /// Get all user profiles (Admin/HR only).
+    /// </summary>
+    [HttpGet]
     [PermissionAuthorize(PermissionConstants.User.ManageEmployees)]
-    public async Task<IActionResult> GetAllUserProfiles()
+    public async Task<IActionResult> GetAllAsync([FromQuery] string? search = null)
     {
-        var response = await _userService.GetAllUserProfilesAsync();
+        var response = await _userService.GetAllUserProfilesAsync(search);
         return Ok(response);
     }
 
-    [HttpPut("update-password")]
+    /// <summary>
+    /// Update the current user's profile.
+    /// </summary>
+    [HttpPut("me")]
     [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
-    public async Task<IActionResult> UpdatePasswordAsync(UpdatePasswordDto dto)
-    {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var response = await _userService.UpdatePasswordAsync(dto, userId);
-        return Ok(response);
-    }
-
-    [HttpPut("update-profile")]
-    [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
-    public async Task<IActionResult> UpdateMyProfileAsync(UpdateUserProfileDto dto)
+    public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UpdateUserProfileDto dto)
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.UpdateMyProfileAsync(dto, userId);
+        return Ok(response);
+    }
+
+    /// <summary>
+    /// Update the current user's password.
+    /// </summary>
+    [HttpPut("me/password")]
+    [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
+    public async Task<IActionResult> UpdatePasswordAsync([FromBody] UpdatePasswordDto dto)
+    {
+        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var response = await _userService.UpdatePasswordAsync(dto, userId);
         return Ok(response);
     }
 }

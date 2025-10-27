@@ -1,4 +1,6 @@
+using System.Net;
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Responses;
 
@@ -6,20 +8,132 @@ namespace Clean.Application.Services.Employee;
 
 public class EmployeeService : IEmployeeService
 {
+    private readonly IEmployeeRepository _employeeRepository;
 
-
-    public Task<List<Domain.Entities.Employee>> GetEmployeesAsync(PaginationFilter filter)
+    public EmployeeService(IEmployeeRepository employeeRepository)
     {
-        throw new NotImplementedException();
+        _employeeRepository = employeeRepository;
     }
 
-    public Task<Domain.Entities.Employee?> GetEmployeeByIdAsync(int id)
+    public async Task<PaginatedResponse<GetEmployeeDto>> GetEmployeesAsync(EmployeePaginationFilter filter)
     {
-        throw new NotImplementedException();
+        var (employees, totalRecords) = await _employeeRepository.GetActiveEmployeesAsync(filter);
+        return new PaginatedResponse<GetEmployeeDto>(employees, filter.PageNumber, filter.PageSize, totalRecords);
     }
 
-    public Task<Domain.Entities.Employee?> GetEmployeeByFirstNameAsync(string firstname)
+    public async Task<Response<GetEmployeeDto?>> GetEmployeeByIdAsync(int id)
     {
-        throw new NotImplementedException();
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
+
+        if (employee == null)
+        {
+            return new Response<GetEmployeeDto?>(HttpStatusCode.NotFound, "Employee not found");
+        }
+
+        var employeeDto = new GetEmployeeDto
+        {
+            Id = employee.Id,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            BaseSalary = employee.BaseSalary,
+            DepartmentName = employee.Department?.Name ?? "Unknown",
+            HireDate = employee.HireDate.ToString("yyyy-MM-dd"),
+            Position = employee.Position,
+            IsActive = employee.IsActive
+        };
+
+        return new Response<GetEmployeeDto?>(HttpStatusCode.OK, employeeDto);
+    }
+
+    public async Task<Response<GetEmployeeDto>> UpdateEmployeeAsync(UpdateEmployeeDto dto)
+    {
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.Id);
+
+        if (employee == null)
+        {
+            return new Response<GetEmployeeDto>(HttpStatusCode.NotFound, "Employee not found");
+        }
+
+        // Update fields only if provided
+        if (!string.IsNullOrWhiteSpace(dto.FirstName))
+        {
+            employee.FirstName = dto.FirstName;
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.LastName))
+        {
+            employee.LastName = dto.LastName;
+        }
+
+        if (dto.Position.HasValue)
+        {
+            employee.Position = dto.Position.Value;
+        }
+
+        if (dto.HireDate.HasValue)
+        {
+            employee.HireDate = dto.HireDate.Value;
+        }
+
+        if (dto.BaseSalary.HasValue)
+        {
+            employee.BaseSalary = dto.BaseSalary.Value;
+        }
+
+        if (dto.IsActive.HasValue)
+        {
+            employee.IsActive = dto.IsActive.Value;
+        }
+
+        if (dto.DepartmentId.HasValue)
+        {
+            employee.DepartmentId = dto.DepartmentId.Value;
+        }
+
+        var updated = await _employeeRepository.UpdateEmployeeAsync(employee);
+
+        if (updated == null)
+        {
+            return new Response<GetEmployeeDto>(HttpStatusCode.InternalServerError, "Failed to update employee");
+        }
+
+        var result = new GetEmployeeDto
+        {
+            Id = updated.Id,
+            FirstName = updated.FirstName,
+            LastName = updated.LastName,
+            BaseSalary = updated.BaseSalary,
+            DepartmentName = updated.Department?.Name ?? "Unknown",
+            HireDate = updated.HireDate.ToString("yyyy-MM-dd"),
+            Position = updated.Position,
+            IsActive = updated.IsActive
+        };
+
+        return new Response<GetEmployeeDto>(HttpStatusCode.OK, "Employee updated successfully", result);
+    }
+
+    public async Task<Response<bool>> DeactivateEmployeeAsync(int id)
+    {
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
+
+        if (employee == null)
+        {
+            return new Response<bool>(HttpStatusCode.NotFound, "Employee not found");
+        }
+
+        if (!employee.IsActive)
+        {
+            return new Response<bool>(HttpStatusCode.BadRequest, "Employee is already inactive");
+        }
+
+        employee.IsActive = false;
+        var updated = await _employeeRepository.UpdateEmployeeAsync(employee);
+
+        if (updated == null)
+        {
+            return new Response<bool>(HttpStatusCode.InternalServerError, "Failed to deactivate employee");
+        }
+
+        return new Response<bool>(HttpStatusCode.OK, "Employee deactivated successfully", true);
     }
 }

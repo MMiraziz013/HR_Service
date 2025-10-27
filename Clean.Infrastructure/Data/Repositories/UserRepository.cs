@@ -22,24 +22,35 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.Users
             .Include(u => u.Employee)
-            .ThenInclude(e=> e!.Department)
+            .ThenInclude(e => e!.Department)
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
-    public async Task<List<User>> GetUsersAsync()
-    {
-        var users = await _userManager.Users
-            .Include(u => u.Employee)
-            .ThenInclude(e => e!.Department)
-            .Where(u=> u.Role != UserRole.Admin)
-            .ToListAsync();
+    // 🔍 Now supports optional search
+        public async Task<List<User>> GetUsersAsync(string? search = null)
+        {
+            var query = _userManager.Users
+                .Include(u => u.Employee)
+                .ThenInclude(e => e!.Department)
+                .Where(u => u.Role != UserRole.Admin)
+                .AsQueryable();
 
-        return users;
-    }
+            if (!string.IsNullOrEmpty(search))
+            {
+                query = query.Where(u =>
+                    EF.Functions.ILike(u.UserName!, $"%{search}%") ||
+                    EF.Functions.ILike(u.Email!, $"%{search}%") ||
+                    EF.Functions.ILike(u.PhoneNumber!, $"%{search}%"));
+            }
+
+            return await query.OrderBy(u => u.Id).ToListAsync();
+        }
 
     public async Task<User?> GetByEmailAsync(string email)
     {
-        return await _userManager.FindByEmailAsync(email);
+        return await _userManager.Users
+            .Include(u => u.Employee)
+            .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email!, $"%{email}%"));
     }
 
     public async Task<IdentityResult> AddAsync(User user, string password)
@@ -50,8 +61,7 @@ public class UserRepository : IUserRepository
     public async Task<IdentityResult> UpdatePasswordAsync(int userId, string currentPassword, string newPassword)
     {
         var user = await _userManager.FindByIdAsync(userId.ToString());
-        var isUpdated = await _userManager.ChangePasswordAsync(user!, currentPassword,newPassword);
-
+        var isUpdated = await _userManager.ChangePasswordAsync(user!, currentPassword, newPassword);
         return isUpdated;
     }
 
@@ -71,17 +81,16 @@ public class UserRepository : IUserRepository
 
     public async Task<bool> ExistsByEmailAsync(string email)
     {
-        return await _userManager.FindByEmailAsync(email) != null;
+        return await _userManager.Users.AnyAsync(u => EF.Functions.ILike(u.Email!, email));
     }
 
     public async Task<bool> ExistsByUsernameAsync(string username)
     {
-        return await _userManager.FindByNameAsync(username) != null;
+        return await _userManager.Users.AnyAsync(u => EF.Functions.ILike(u.UserName!, username));
     }
 
     public async Task<bool> ExistsByPhoneNumberAsync(string phoneNumber)
     {
-        var exists = await _context.Users.AnyAsync(u => u.PhoneNumber!.ToLower() == phoneNumber.ToLower());
-        return exists;
+        return await _context.Users.AnyAsync(u => EF.Functions.ILike(u.PhoneNumber!, phoneNumber));
     }
 }

@@ -5,19 +5,17 @@ using Clean.Application.Dtos.Responses;
 using Clean.Application.Dtos.Users;
 using Clean.Application.Services.Enum;
 using Clean.Application.Services.JWT;
-using Clean.Domain.Entities;
-using Clean.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
+namespace Clean.Application.Services.User;
 
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDepartmentRepository _departmentRepository;
-    private readonly UserManager<User> _userManager;
+    private readonly UserManager<Domain.Entities.User> _userManager;
     private readonly IJwtTokenService _tokenService;
     private readonly IConfiguration _configuration;
     private readonly IDataContext _context;
@@ -26,7 +24,7 @@ public class UserService : IUserService
         IUserRepository userRepository,
         IEmployeeRepository employeeRepository,
         IDepartmentRepository departmentRepository,
-        UserManager<User> userManager,
+        UserManager<Domain.Entities.User> userManager,
         IJwtTokenService tokenService,
         IConfiguration configuration,
         IDataContext context)
@@ -58,12 +56,11 @@ public class UserService : IUserService
             return new Response<string>(HttpStatusCode.BadRequest, message: "No such department to add employee to");
         }
 
-        // ✅ Transaction begins
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
         {
-            var user = new User
+            var user = new Domain.Entities.User
             {
                 UserName = dto.Username,
                 Email = dto.Email,
@@ -84,7 +81,7 @@ public class UserService : IUserService
             // This adds a record in the AspNetUserRoles table, that joins user and their roles.
             await _userManager.AddToRoleAsync(user, dto.UserRole.GetDisplayName());
             
-            var employee = new Employee
+            var employee = new Domain.Entities.Employee
             {
                 FirstName = dto.FirstName,
                 LastName = dto.LastName,
@@ -177,9 +174,15 @@ public class UserService : IUserService
         return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile Retrieved!", profileDto);
     }
 
-    public async Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync()
+    public async Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync(string? search = null)
     {
-        var users = await _userRepository.GetUsersAsync();
+        var users = await _userRepository.GetUsersAsync(search);
+
+        if (users == null || users.Count == 0)
+        {
+            return new Response<List<UserProfileDto>>(HttpStatusCode.NotFound, "No users found.");
+        }
+
         var userProfiles = users.Select(u => new UserProfileDto
         {
             Username = u.UserName,
@@ -200,8 +203,9 @@ public class UserService : IUserService
             }
         }).ToList();
 
-        return new Response<List<UserProfileDto>>(HttpStatusCode.OK, userProfiles);
+        return new Response<List<UserProfileDto>>(HttpStatusCode.OK, "Users retrieved successfully!", userProfiles);
     }
+
 
     public async Task<Response<string>> UpdatePasswordAsync(UpdatePasswordDto dto, int userId)
     {
