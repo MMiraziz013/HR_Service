@@ -87,7 +87,6 @@ public class UserService : IUserService
                 LastName = dto.LastName,
                 Position = dto.Position,
                 HireDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                BaseSalary = dto.BaseSalary,
                 IsActive = true,
                 DepartmentId = dto.DepartmentId,
                 UserId = user.Id
@@ -163,7 +162,10 @@ public class UserService : IUserService
                 Id = employee.Employee.Id,
                 FirstName = employee.Employee.FirstName,
                 LastName = employee.Employee.LastName,
-                BaseSalary = employee.Employee.BaseSalary,
+                BaseSalary = employee.Employee.SalaryHistories
+                    .OrderByDescending(sh => sh.Month)
+                    .Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
                 DepartmentName = employee.Employee.Department.Name,
                 IsActive = employee.Employee.IsActive,
                 Position = employee.Employee.Position,
@@ -178,7 +180,7 @@ public class UserService : IUserService
     {
         var users = await _userRepository.GetUsersAsync(search);
 
-        if (users == null || users.Count == 0)
+        if (users.Count == 0)
         {
             return new Response<List<UserProfileDto>>(HttpStatusCode.NotFound, "No users found.");
         }
@@ -195,7 +197,10 @@ public class UserService : IUserService
                 Id = u.Employee!.Id,
                 FirstName = u.Employee.FirstName,
                 LastName = u.Employee.LastName,
-                BaseSalary = u.Employee.BaseSalary,
+                BaseSalary = u.Employee.SalaryHistories
+                    .OrderByDescending(sh => sh.Month)
+                    .Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
                 DepartmentName = u.Employee.Department.Name,
                 IsActive = u.Employee.IsActive,
                 Position = u.Employee.Position,

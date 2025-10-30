@@ -30,6 +30,7 @@ public class DepartmentRepository : IDepartmentRepository
     {
         var query = _context.Departments
             .Include(d => d.Employees)
+            .ThenInclude(e=> e.SalaryHistories)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(search))
@@ -44,6 +45,7 @@ public class DepartmentRepository : IDepartmentRepository
     {
         return await _context.Departments
             .Include(d => d.Employees)
+            .ThenInclude(e=> e.SalaryHistories)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 

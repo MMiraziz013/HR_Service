@@ -185,7 +185,6 @@ namespace Clean.Infrastructure.Migrations
                     LastName = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
                     Position = table.Column<int>(type: "integer", nullable: false),
                     HireDate = table.Column<DateTime>(type: "date", nullable: false),
-                    BaseSalary = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     IsActive = table.Column<bool>(type: "boolean", nullable: false),
                     DepartmentId = table.Column<int>(type: "integer", nullable: false),
                     UserId = table.Column<int>(type: "integer", nullable: false)
@@ -213,8 +212,8 @@ namespace Clean.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    PeriodStart = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    PeriodEnd = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    PeriodStart = table.Column<DateTime>(type: "date", nullable: false),
+                    PeriodEnd = table.Column<DateTime>(type: "date", nullable: false),
                     GrossPay = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     Deductions = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
@@ -237,7 +236,7 @@ namespace Clean.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Month = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Month = table.Column<DateTime>(type: "date", nullable: false),
                     ExpectedAmount = table.Column<decimal>(type: "numeric", nullable: false),
                     ActualAmount = table.Column<decimal>(type: "numeric", nullable: false),
                     DeviationPercent = table.Column<float>(type: "real", nullable: false),
@@ -262,7 +261,7 @@ namespace Clean.Infrastructure.Migrations
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Month = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Month = table.Column<DateTime>(type: "date", nullable: false),
                     BaseAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     BonusAmount = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false)
@@ -287,6 +286,9 @@ namespace Clean.Infrastructure.Migrations
                     TotalDaysPerYear = table.Column<int>(type: "integer", nullable: false),
                     UsedDays = table.Column<int>(type: "integer", nullable: false),
                     Year = table.Column<int>(type: "integer", nullable: false),
+                    ByExperienceBonusDays = table.Column<int>(type: "integer", nullable: false),
+                    PeriodStart = table.Column<DateTime>(type: "date", nullable: false),
+                    PeriodEnd = table.Column<DateTime>(type: "date", nullable: false),
                     EmployeeId = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>

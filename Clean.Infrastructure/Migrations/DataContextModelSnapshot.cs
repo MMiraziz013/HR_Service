@@ -53,9 +53,6 @@ namespace Clean.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("BaseSalary")
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<int>("DepartmentId")
                         .HasColumnType("integer");
 
@@ -114,10 +111,10 @@ namespace Clean.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("PeriodEnd")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<DateTime>("PeriodStart")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
@@ -150,7 +147,7 @@ namespace Clean.Infrastructure.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<DateTime>("Month")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.Property<string>("ReviewComment")
                         .HasMaxLength(250)
@@ -181,7 +178,7 @@ namespace Clean.Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("Month")
-                        .HasColumnType("timestamp with time zone");
+                        .HasColumnType("date");
 
                     b.HasKey("Id");
 
@@ -274,8 +271,17 @@ namespace Clean.Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("ByExperienceBonusDays")
+                        .HasColumnType("integer");
+
                     b.Property<int>("EmployeeId")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("date");
 
                     b.Property<int>("TotalDaysPerYear")
                         .HasColumnType("integer");

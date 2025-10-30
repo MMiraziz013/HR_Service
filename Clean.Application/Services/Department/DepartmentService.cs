@@ -15,6 +15,7 @@ public class DepartmentService : IDepartmentService
         _departmentRepository = departmentRepository;
     }
 
+    //TODO: Modify to return DepartmentDto
     public async Task<Response<bool>> AddDepartmentAsync(AddDepartmentDto dto)
     {
         var department = new Domain.Entities.Department
@@ -70,7 +71,10 @@ public class DepartmentService : IDepartmentService
                 Id = e.Id,
                 FirstName = e.FirstName,
                 LastName = e.LastName,
-                BaseSalary = e.BaseSalary,
+                BaseSalary = e.SalaryHistories
+                    .OrderByDescending(sh => sh.Month)
+                    .Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
                 DepartmentName = d.Name,
                 HireDate = e.HireDate.ToString("yyyy-MM-dd"),
                 Position = e.Position,
@@ -117,7 +121,10 @@ public class DepartmentService : IDepartmentService
                 Id = e.Id,
                 FirstName = e.FirstName,
                 LastName = e.LastName,
-                BaseSalary = e.BaseSalary,
+                BaseSalary = e.SalaryHistories
+                    .OrderByDescending(sh => sh.Month)
+                    .Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
                 DepartmentName = department.Name,
                 HireDate = e.HireDate.ToString("yyyy-MM-dd"),
                 Position = e.Position,

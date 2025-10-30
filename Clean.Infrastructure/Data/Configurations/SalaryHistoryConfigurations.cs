@@ -17,9 +17,10 @@ public class SalaryHistoryConfigurations : IEntityTypeConfiguration<SalaryHistor
         
         builder.Property(sh => sh.Month)
             .HasConversion(
-                v => v.ToDateTime(TimeOnly.MinValue), // Convert to DateTime when saving
-                v => DateOnly.FromDateTime(v) // Convert to DateOnly when reading
-            );
+                v => v.ToDateTime(TimeOnly.MinValue),
+                v => DateOnly.FromDateTime(v)
+            )
+            .HasColumnType("date");
 
         builder.HasOne(sh => sh.Employee)
             .WithMany(e => e.SalaryHistories)

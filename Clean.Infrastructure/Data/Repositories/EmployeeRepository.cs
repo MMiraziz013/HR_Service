@@ -28,28 +28,42 @@ public class EmployeeRepository : IEmployeeRepository
         var query = _context.Employees
             .Include(e => e.Department)
             .Include(e => e.User)
+            .Include(e=> e.SalaryHistories)
             .AsQueryable();
 
         // Filter by IsActive (true = active, false = inactive, null = all)
         if (filter.IsActive.HasValue)
+        {
             query = query.Where(e => e.IsActive == filter.IsActive.Value);
+        }
 
         // Case-insensitive substring matching with PostgreSQL ILIKE
         if (!string.IsNullOrEmpty(filter.FirstName))
+        {
             query = query.Where(r => EF.Functions.ILike(r.FirstName!, $"%{filter.FirstName}%"));
+        }
 
         if (!string.IsNullOrEmpty(filter.LastName))
+        {
             query = query.Where(r => EF.Functions.ILike(r.LastName!, $"%{filter.LastName}%"));
+        }
 
         if (!string.IsNullOrEmpty(filter.Email))
+        {
             query = query.Where(r => EF.Functions.ILike(r.User.Email!, $"%{filter.Email}%"));
 
+        }
+        
         if (!string.IsNullOrEmpty(filter.DepartmentName))
+        {
             query = query.Where(r => EF.Functions.ILike(r.Department.Name!, $"%{filter.DepartmentName}%"));
+        }
 
         if (filter.Position.HasValue)
+        {
             query = query.Where(r => r.Position == filter.Position);
-
+        }
+        
         var totalRecords = await query.CountAsync();
 
         query = query
@@ -62,8 +76,11 @@ public class EmployeeRepository : IEmployeeRepository
             Id = e.Id,
             FirstName = e.FirstName,
             LastName = e.LastName,
-            BaseSalary = e.BaseSalary,
             DepartmentName = e.Department.Name,
+            BaseSalary = e.SalaryHistories
+                .OrderByDescending(sh => sh.Month)
+                .Select(sh => sh.BaseAmount)
+                .FirstOrDefault(),
             HireDate = e.HireDate.ToString("yyyy-MM-dd"),
             Position = e.Position,
             IsActive = e.IsActive
@@ -76,6 +93,7 @@ public class EmployeeRepository : IEmployeeRepository
     {
         var employee = await _context.Employees
             .Include(e => e.Department)
+            .Include(e=> e.SalaryHistories)
             .FirstOrDefaultAsync(e => e.Id == id);
         return employee;
     }
@@ -84,6 +102,7 @@ public class EmployeeRepository : IEmployeeRepository
     {
         var existing = await _context.Employees
             .Include(e => e.Department)
+            .Include(e=> e.SalaryHistories)
             .FirstOrDefaultAsync(e => e.Id == employee.Id);
 
         if (existing == null)
