@@ -23,6 +23,8 @@ public class UserRepository : IUserRepository
         return await _userManager.Users
             .Include(u => u.Employee)
             .ThenInclude(e => e!.Department)
+            .Include(u=> u.Employee)
+            .ThenInclude(e=> e!.SalaryHistories)
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
@@ -32,6 +34,8 @@ public class UserRepository : IUserRepository
             var query = _userManager.Users
                 .Include(u => u.Employee)
                 .ThenInclude(e => e!.Department)
+                .Include(u=> u.Employee)
+                .ThenInclude(e=> e!.SalaryHistories)
                 .Where(u => u.Role != UserRole.Admin)
                 .AsQueryable();
 

@@ -9,7 +9,7 @@ public class UpdateEmployeeDto
     public string? LastName { get; set; } = default!;
     public EmployeePosition? Position { get; set; }
     public DateOnly? HireDate { get; set; }
-    public decimal? BaseSalary { get; set; }
+    // public decimal? BaseSalary { get; set; }
     public bool? IsActive { get; set; }
     
     public int? DepartmentId { get; set; }

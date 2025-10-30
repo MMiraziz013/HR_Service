@@ -35,7 +35,10 @@ public class EmployeeService : IEmployeeService
             Id = employee.Id,
             FirstName = employee.FirstName,
             LastName = employee.LastName,
-            BaseSalary = employee.BaseSalary,
+            BaseSalary = employee.SalaryHistories
+                .OrderByDescending(sh => sh.Month)
+                .Select(sh => sh.BaseAmount)
+                .FirstOrDefault(),
             DepartmentName = employee.Department?.Name ?? "Unknown",
             HireDate = employee.HireDate.ToString("yyyy-MM-dd"),
             Position = employee.Position,
@@ -75,11 +78,6 @@ public class EmployeeService : IEmployeeService
             employee.HireDate = dto.HireDate.Value;
         }
 
-        if (dto.BaseSalary.HasValue)
-        {
-            employee.BaseSalary = dto.BaseSalary.Value;
-        }
-
         if (dto.IsActive.HasValue)
         {
             employee.IsActive = dto.IsActive.Value;
@@ -102,7 +100,10 @@ public class EmployeeService : IEmployeeService
             Id = updated.Id,
             FirstName = updated.FirstName,
             LastName = updated.LastName,
-            BaseSalary = updated.BaseSalary,
+            BaseSalary = updated.SalaryHistories
+                .OrderByDescending(sh => sh.Month)
+                .Select(sh => sh.BaseAmount)
+                .FirstOrDefault(),
             DepartmentName = updated.Department?.Name ?? "Unknown",
             HireDate = updated.HireDate.ToString("yyyy-MM-dd"),
             Position = updated.Position,

@@ -21,7 +21,9 @@ public class PayrollRecordConfigurations :IEntityTypeConfiguration<PayrollRecord
             .HasConversion(
                 v => v.ToDateTime(TimeOnly.MinValue), // Convert to DateTime when saving
                 v => DateOnly.FromDateTime(v) // Convert to DateOnly when reading
-            ).HasColumnType("date");
+            )
+            .HasColumnType("date");
+        
          builder.Property(pr=> pr.PeriodEnd)
             .HasConversion(
                 v => v.ToDateTime(TimeOnly.MinValue),

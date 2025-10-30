@@ -9,7 +9,9 @@ public class Employee
     public string LastName { get; set; } = default!;
     public EmployeePosition Position { get; set; }
     public DateOnly HireDate { get; set; }
-    public decimal BaseSalary { get; set; }
+    
+    // Base salary was present at first, but then removed because we already have it in Salary History
+    // public decimal BaseSalary { get; set; }
     public bool IsActive { get; set; }
 
     // Relationships
