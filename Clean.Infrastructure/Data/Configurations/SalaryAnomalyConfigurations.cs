@@ -16,7 +16,7 @@ public class SalaryAnomalyConfigurations : IEntityTypeConfiguration<SalaryAnomal
             .HasConversion(
                 v => v.ToDateTime(TimeOnly.MinValue), // Convert to DateTime when saving
                 v => DateOnly.FromDateTime(v) // Convert to DateOnly when reading
-            );
+            ).HasColumnType("date");
 
         builder.HasOne(sa => sa.Employee)
             .WithMany(e => e.SalaryAnomalies)

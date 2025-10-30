@@ -26,7 +26,7 @@ public class SalaryHistoryController : Controller
     return Ok(response);
   }
 
-  [HttpGet("get{employeeId}")]//for employee interface
+  [HttpGet("get{employeeId:int}")]//for employee interface
   [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
   public async Task<IActionResult> GetSalaryHistoryByEmployeeId(int employeeId)
   {
@@ -51,7 +51,7 @@ public class SalaryHistoryController : Controller
   }
 
 
-  [HttpGet("get-by-month/{employeeId}")] // for employee interface
+  [HttpGet("get-by-month/{employeeId:int}")] // for employee 
   [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
   public async Task<IActionResult> GetSalaryHistoryByMonthAsync(int employeeId,  [FromQuery] DateOnly month)
   {
@@ -59,36 +59,43 @@ public class SalaryHistoryController : Controller
     return Ok(response);
   }
 
+  [HttpGet("get-monthly")]
+  [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
+  public async Task<IActionResult> GetSalaryRecordsByMonth([FromQuery] DateTime month)
+  {
+    var response = await _salaryHistoryService.GetSalaryHistoryByMonthAsync(month);
+    return Ok(response);
+  }
   [HttpGet("get-by-month")]
   [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
-  public async Task<IActionResult> GetSalaryHistoryByMonthForHR([FromQuery] int employeeId, [FromQuery] DateOnly month)
+  public async Task<IActionResult> GetSalaryHistoryByMonthForHr([FromQuery] int employeeId, [FromQuery] DateOnly month)
   {
     var response=await _salaryHistoryService.GetSalaryHistoryByMonthAsync(employeeId, month);
     return Ok(response);
   }
-
-  [HttpGet("get-total/{employeeId}")]
-  [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
-  public async Task<IActionResult> GetTotalPaidSalaryForParticularTime(int employeeId, DateOnly startDate, DateOnly endDate)
-  {
-    var response=await _salaryHistoryService.GetTotalPaidAmountAsync(employeeId, startDate, endDate);
-    return Ok(response);
-  }
+  
 
   [HttpGet("get-by-department")]
   [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
-  public async Task<IActionResult> GetTotalPaidAmountByDepartment([FromQuery]int departmentId, [FromQuery]DateOnly startDate,
-    [FromQuery] DateOnly endDate)
+  public async Task<IActionResult> GetTotalPaidAmountByDepartment([FromQuery]int departmentId, [FromQuery] DateOnly month)
   {
-    var response = await _salaryHistoryService.GetTotalPaidAmountByDepartmentAsync(departmentId, startDate, endDate);
+    var response = await _salaryHistoryService.GetTotalPaidAmountByDepartmentAsync(departmentId, month);
     return Ok(response);
   }
 
-  [HttpDelete("delete")]
-  [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
-  public async Task<IActionResult>  DeleteSalaryHistory([FromQuery] int id)
-  {
-    var response = await _salaryHistoryService.DeleteSalaryHistoryAsync(id);
-    return Ok(response);
-  }
+  // [HttpDelete("delete")]
+  // [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
+  // public async Task<IActionResult> DeleteSalaryHistory([FromQuery] int id)
+  // {
+  //   var response = await _salaryHistoryService.DeleteSalaryHistoryAsync(id);
+  //   return Ok(response);
+  // }
+  
+  // [HttpGet("get-total/{employeeId}")]
+  // [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
+  // public async Task<IActionResult> GetTotalPaidSalaryForParticularTime(int employeeId, DateTime startDate, DateTime endDate)
+  // {
+  //   var response=await _salaryHistoryService.GetTotalPaidAmountAsync(employeeId, startDate, endDate);
+  //   return Ok(response);
+  // }
 }
