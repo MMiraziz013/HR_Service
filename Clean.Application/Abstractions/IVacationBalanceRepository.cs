@@ -1,10 +1,15 @@
+using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.VacationBalance;
+using Clean.Domain.Entities;
 
 namespace Clean.Application.Abstractions;
 
 public interface IVacationBalanceRepository
 {
-    //TODO: Implement IVacationBalanceRepository
+    Task<bool> AddVacationBalanceAsync(VacationBalance dto);
+    Task<List<VacationBalance>> GetVacationBalancesAsync(VacationBalanceFilter filter);
 
-    Task<GetVacationBalanceDto> AddAsync(AddVacationBalanceDto dto);
-}
+    Task<VacationBalance?> GetVacationBalanceByIdAsync(int vacationBalanceId);
+    
+    // Task<VacationBalance> GetVacationBalanceByEmployeeIdAsync(int employeeId);
+    Task<VacationBalance?> UpdateVacationBalanceAsync(VacationBalance dto);}

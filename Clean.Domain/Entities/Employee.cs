@@ -21,7 +21,7 @@ public class Employee
     public int UserId { get; set; }
     public User User { get; set; } = default!;
     
-    public VacationBalance VacationBalance { get; set; } = default!;
+    public List<VacationBalance> VacationBalances { get; set; } = new();
     
     public List<SalaryHistory> SalaryHistories { get; set; } = new();
     public List<VacationRecord> VacationRecords { get; set; } = new();

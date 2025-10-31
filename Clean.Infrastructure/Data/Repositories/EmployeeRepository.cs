@@ -23,7 +23,7 @@ public class EmployeeRepository : IEmployeeRepository
         return isAdded > 0;
     }
 
-    public async Task<(List<GetEmployeeDto> Employees, int TotalRecords)> GetActiveEmployeesAsync(EmployeePaginationFilter filter)
+    public async Task<(List<GetEmployeeDto> Employees, int TotalRecords)> GetActiveEmployeesPaginatedAsync(EmployeePaginationFilter filter)
     {
         var query = _context.Employees
             .Include(e => e.Department)
@@ -89,11 +89,25 @@ public class EmployeeRepository : IEmployeeRepository
         return (employees, totalRecords);
     }
 
+    public async Task<List<Employee>> GetActiveEmployeesAsync()
+    {
+        var employees = await _context.Employees
+            .Include(e => e.Department)
+            .Include(e => e.User)
+            .Include(e => e.SalaryHistories)
+            .Include(e=> e.VacationBalances)
+            .Where(e => e.IsActive)
+            .ToListAsync();
+
+        return employees;
+    }
+
     public async Task<Employee?> GetEmployeeByIdAsync(int id)
     {
         var employee = await _context.Employees
             .Include(e => e.Department)
             .Include(e=> e.SalaryHistories)
+            .Include(e=> e.VacationBalances)
             .FirstOrDefaultAsync(e => e.Id == id);
         return employee;
     }

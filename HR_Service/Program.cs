@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using Clean.Application;
 using Clean.Application.Abstractions;
+using Clean.Application.Jobs;
 using Clean.Application.Security.Permission;
 using Clean.Infrastructure;
 using Clean.Infrastructure.Data;
@@ -11,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Quartz;
 using Serilog;
 using Serilog.Formatting.Json;
 
@@ -18,6 +20,7 @@ namespace HR_Service;
 
 public class Program
 {
+    [Obsolete("Obsolete")]
     public static async Task Main(string[] args)
     {
         Directory.CreateDirectory("logs");
@@ -103,6 +106,56 @@ public class Program
         builder.Services.AddIdentityServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
+        
+        
+        //TODO: Check if quartz was executed later.
+        builder.Services.AddQuartz(q =>
+        {
+            q.UseMicrosoftDependencyInjectionJobFactory();
+
+            // ✅ Use persistent store
+            q.UsePersistentStore(options =>
+            {
+                options.UseProperties = true;
+                options.RetryInterval = TimeSpan.FromSeconds(15);
+
+                options.UsePostgres(pgOptions =>
+                {
+                    var baseConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+                    var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+
+                    if (!string.IsNullOrEmpty(dbPassword))
+                    {
+                        baseConnectionString = baseConnectionString!.Replace("Password=", $"Password={dbPassword}");
+                    }
+
+                    pgOptions.ConnectionString = baseConnectionString!;
+                });
+
+                // Optional: use JSON serialization for job data
+                options.UseJsonSerializer();
+            });
+
+            // ✅ Register job
+            var jobKey = new JobKey("VacationBalanceJob");
+            q.AddJob<VacationBalanceJob>(opts => opts.WithIdentity(jobKey));
+
+            // ✅ Trigger: run daily at 2:00 UTC
+            q.AddTrigger(opts => opts
+                .ForJob(jobKey)
+                .WithIdentity("VacationBalanceTrigger")
+                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 0))
+            );
+        });
+
+        // ✅ Add Quartz Hosted Service (runs scheduler in background)
+        builder.Services.AddQuartzHostedService(options =>
+        {
+            options.WaitForJobsToComplete = true;
+        });
+
+
 
         var app = builder.Build();
 
@@ -123,6 +176,17 @@ public class Program
             options.SwaggerEndpoint("/swagger/v1/swagger.json", "v1");
             options.RoutePrefix = string.Empty;
         });
+        
+        
+        //TODO: Check if we can implement quartz dashboard later
+        // var scheduler = await app.Services.GetRequiredService<ISchedulerFactory>().GetScheduler();
+        
+        // app.UseSilkierQuartz( =>
+        // {
+        //     config.Scheduler = scheduler;
+        // });
+
+
 
         app.UseHttpsRedirection();
         app.UseMiddleware<LoggingMiddleware>();

@@ -18,11 +18,13 @@ public class SeedDataInitializer
     {
         _logger.LogInformation("🔄 Starting data seeding process...");
 
-        // Ensure a deterministic order for dependent seeders
+        // Ensure deterministic order for dependent seeders
         var orderedSeeders = _seeders.OrderBy(seeder => seeder switch
         {
             IdentitySeeder _ => 1,
             SeedAdminUser _ => 2,
+            SeedDepartments _ => 3,
+            SeedEmployeeUsers _ => 4,
             _ => 99
         });
 

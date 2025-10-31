@@ -5,6 +5,7 @@ using Clean.Application.Services.JWT;
 using Clean.Application.Services.PayrollRecord;
 using Clean.Application.Services.SalaryHistory;
 using Clean.Application.Services.User;
+using Clean.Application.Services.VacationBalance;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -19,6 +20,7 @@ public static class ApplicationInjection
         services.AddTransient<IUserService, UserService>();
         services.AddTransient<IEmployeeService, EmployeeService>();
         services.AddTransient<IDepartmentService, DepartmentService>();
+        services.AddTransient<IVacationBalanceService, VacationBalanceService>();
         services.AddTransient<IJwtTokenService, JwtTokenService>();
         services.AddTransient<ISalaryHistoryService, SalaryHistoryService>();
         services.AddTransient<IPayrollRecordService, PayrollRecordService>();

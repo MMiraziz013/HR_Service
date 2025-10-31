@@ -30,13 +30,15 @@ public static class InfrastructureInjection
         services.AddTransient<IDataSeeder, SeedAdminUser>();
         //TODO: Check if we need to seed hrs and employees. If yes, employees table should also be updated!
         // services.AddTransient<IDataSeeder, SeedHRUsers>();
-        // services.AddTransient<IDataSeeder, SeedEmployeeUsers>();
+        services.AddTransient<IDataSeeder, SeedDepartments>();
+        services.AddTransient<IDataSeeder, SeedEmployeeUsers>();
         services.AddTransient<SeedDataInitializer>();
         
         // Repository Injections 
         services.AddTransient<IUserRepository, UserRepository>();
         services.AddTransient<IEmployeeRepository, EmployeeRepository>();
         services.AddTransient<IDepartmentRepository, DepartmentRepository>();
+        services.AddTransient<IVacationBalanceRepository, VacationBalanceRepository>();
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
         return services;

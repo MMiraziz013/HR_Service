@@ -25,5 +25,9 @@ public class VacationBalanceConfigurations : IEntityTypeConfiguration<VacationBa
                 v => DateOnly.FromDateTime(v)         // Convert to DateOnly when reading
             )
             .HasColumnType("date"); // Use 'date' instead of 'datetime' in SQL
+        
+        
+        builder.HasIndex(vb => vb.EmployeeId);
+        builder.HasIndex(vb => vb.Year);
     }
 }
