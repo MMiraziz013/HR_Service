@@ -10,7 +10,7 @@ public interface ISalaryHistoryRepository
     Task<List<SalaryHistory>> GetSalaryHistoriesAsync();
     Task<SalaryHistory?> GetByIdAsync(int id);
     Task<List<SalaryHistory>> GetByMonthAsync(DateTime month);
-     Task<SalaryHistory> GetSalaryByMonth(int employeeId, DateOnly month);
+    Task<SalaryHistory?> GetSalaryByMonth(int employeeId, DateOnly month);
       Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateOnly month);
       Task<SalaryHistory?> GetLatestSalaryHistoryAsync(int employeeId);
       

@@ -36,9 +36,8 @@ public class EmployeeConfigurations : IEntityTypeConfiguration<Employee>
         builder.HasMany(e => e.SalaryAnomalies)
             .WithOne(sa => sa.Employee);
         
-        builder.HasOne(e => e.VacationBalance)
+        builder.HasMany(e => e.VacationBalances)
             .WithOne(vb => vb.Employee)
-            .HasForeignKey<VacationBalance>(vb => vb.EmployeeId)
             .OnDelete(DeleteBehavior.Cascade);
         
     }

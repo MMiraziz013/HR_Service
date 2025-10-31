@@ -143,6 +143,7 @@ private readonly IDepartmentRepository _departmentRepository;
         var dto = new GetSalaryHistoryWithEmployeeDto
         {
             Id = history.Id,
+            EmployeeId = history.EmployeeId,
             Month = history.Month,
             ExpectedTotal = history.ExpectedTotal,
             EmployeeName = history.Employee.FirstName
@@ -151,7 +152,7 @@ private readonly IDepartmentRepository _departmentRepository;
         return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
             HttpStatusCode.OK,
             message: "Salary history retrieved successfully.",
-            data: new List<GetSalaryHistoryWithEmployeeDto> { dto }
+            data: [dto]
         );
     }
     
@@ -200,6 +201,8 @@ private readonly IDepartmentRepository _departmentRepository;
                    HttpStatusCode.NotFound,
                    "Department is not found.");
            }
+           
+           //TODO: Implement edge case handling when the month input is null, or not chosen
            var total = await _repository.GetTotalPaidAmountByDepartmentAsync(departmentId, month);
         
            var dto = new GetTotalPaidForDepartmentDto
@@ -221,7 +224,7 @@ private readonly IDepartmentRepository _departmentRepository;
     {
         var history = await _repository.GetByMonthAsync(month);
 
-        if (history is null)
+        if (history.Count == 0)
         {
             return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
                 HttpStatusCode.BadRequest,
@@ -239,7 +242,7 @@ private readonly IDepartmentRepository _departmentRepository;
 
         return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
             HttpStatusCode.OK,
-            message: $"Salary history for {month.Month}-{month.Year} retrieved successfully");
+            message: $"Salary history for {month.Month}-{month.Year} retrieved successfully", mapped);
 
     }
     

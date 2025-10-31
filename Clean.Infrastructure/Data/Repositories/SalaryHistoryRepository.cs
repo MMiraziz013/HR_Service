@@ -55,6 +55,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
     public async Task<List<SalaryHistory>> GetByMonthAsync(DateTime month)
     {
         return await _context.SalaryHistories
+            .Include(s=> s.Employee)
             .Where(s => s.Month.Month == month.Month
                         && s.Month.Year == month.Year).ToListAsync();
     }
@@ -82,7 +83,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
     //     return isDeleted > 0;
     // }
 
-    public async Task<SalaryHistory> GetSalaryByMonth(int employeeId, DateOnly month)
+    public async Task<SalaryHistory?> GetSalaryByMonth(int employeeId, DateOnly month)
     {
         var salary= await _context.SalaryHistories
             .Include(s => s.Employee)

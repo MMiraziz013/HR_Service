@@ -17,7 +17,7 @@ public class EmployeeService : IEmployeeService
 
     public async Task<PaginatedResponse<GetEmployeeDto>> GetEmployeesAsync(EmployeePaginationFilter filter)
     {
-        var (employees, totalRecords) = await _employeeRepository.GetActiveEmployeesAsync(filter);
+        var (employees, totalRecords) = await _employeeRepository.GetActiveEmployeesPaginatedAsync(filter);
         return new PaginatedResponse<GetEmployeeDto>(employees, filter.PageNumber, filter.PageSize, totalRecords);
     }
 

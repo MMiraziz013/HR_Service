@@ -10,7 +10,9 @@ public interface IEmployeeRepository
     //TODO: Finish Employee Repository methods
     Task<bool> AddAsync(Employee employee);
 
-    Task<(List<GetEmployeeDto> Employees, int TotalRecords)> GetActiveEmployeesAsync(EmployeePaginationFilter filter);
+    Task<(List<GetEmployeeDto> Employees, int TotalRecords)> GetActiveEmployeesPaginatedAsync(EmployeePaginationFilter filter);
+
+    Task<List<Employee>> GetActiveEmployeesAsync();
     
     Task<Employee?> GetEmployeeByIdAsync(int id);
 

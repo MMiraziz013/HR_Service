@@ -54,6 +54,7 @@ public class UserRepository : IUserRepository
     {
         return await _userManager.Users
             .Include(u => u.Employee)
+            .ThenInclude(e=> e!.SalaryHistories)
             .FirstOrDefaultAsync(u => EF.Functions.ILike(u.Email!, $"%{email}%"));
     }
 

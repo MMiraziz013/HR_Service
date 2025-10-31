@@ -3,6 +3,7 @@ using System;
 using Clean.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Clean.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20251031070151_SecondMigration_Quartz")]
+    partial class SecondMigration_Quartz
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -294,9 +297,8 @@ namespace Clean.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EmployeeId");
-
-                    b.HasIndex("Year");
+                    b.HasIndex("EmployeeId")
+                        .IsUnique();
 
                     b.ToTable("vacation_balances", (string)null);
                 });
@@ -525,8 +527,8 @@ namespace Clean.Infrastructure.Migrations
             modelBuilder.Entity("Clean.Domain.Entities.VacationBalance", b =>
                 {
                     b.HasOne("Clean.Domain.Entities.Employee", "Employee")
-                        .WithMany("VacationBalances")
-                        .HasForeignKey("EmployeeId")
+                        .WithOne("VacationBalance")
+                        .HasForeignKey("Clean.Domain.Entities.VacationBalance", "EmployeeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -608,7 +610,8 @@ namespace Clean.Infrastructure.Migrations
 
                     b.Navigation("SalaryHistories");
 
-                    b.Navigation("VacationBalances");
+                    b.Navigation("VacationBalance")
+                        .IsRequired();
 
                     b.Navigation("VacationRecords");
                 });

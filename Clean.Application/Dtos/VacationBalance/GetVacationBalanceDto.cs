@@ -1,3 +1,5 @@
+using Clean.Application.Dtos.Employee;
+
 namespace Clean.Application.Dtos.VacationBalance;
 
 public class GetVacationBalanceDto
@@ -7,9 +9,14 @@ public class GetVacationBalanceDto
     public int UsedDays { get; set; }
     public int RemainingDays => TotalDaysPerYear - UsedDays;
     public int Year { get; set; }
+
+    public int ByExperienceBonusDays { get; set; }
     
+    public string PeriodStart { get; set; }
+    public string PeriodEnd { get; set; }
     public int EmployeeId { get; set; }
-    public Domain.Entities.Employee Employee { get; set; } = default!;
+
+    // public GetEmployeeDto EmployeeDto { get; set; }
     
     //TODO: Check the the dto properties, if they are correct
 }
