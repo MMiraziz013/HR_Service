@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/payroll_record")]
 public class PayrollRecordController : Controller
 {
     private readonly IPayrollRecordService _payrollRecordService;
@@ -31,7 +31,7 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.GetAllPayrollRecordsAsync();
         return Ok(response);
     }
-
+   
     [HttpGet("get-by-id")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
     public async Task<IActionResult> GetById([FromQuery] int id)
@@ -47,14 +47,7 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.GetPayrollRecordsByEmployeeIdAsync(employeeId);
         return Ok(response);
     }
-
-    [HttpGet("get")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
-    public async Task<IActionResult> GetByEmployeeIdForHr([FromQuery]int id)
-    {
-        var response = await _payrollRecordService.GetPayrollRecordsByEmployeeIdAsync(id);
-        return Ok(response);
-    }
+    
 
     [HttpGet("get-latest/{employeeId:int}")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
@@ -63,14 +56,7 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.GetLatestPayrollRecordByEmployeeIdAsync(employeeId);
         return Ok(response);
     }
-
-    [HttpGet("get-latest")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
-    public async Task<IActionResult> GetLatestForHr([FromQuery] int id)
-    {
-        var response = await _payrollRecordService.GetLatestPayrollRecordByEmployeeIdAsync(id);
-        return Ok(response);
-    }
+    
 
     [HttpPut("update")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
@@ -79,6 +65,15 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
         return Ok(response);
     }
+    
+    [HttpGet("statistics/total-net-pay")]
+    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    public async Task<IActionResult> GetTotalNetPayForLastSixMonths()
+    {
+        var result = await _payrollRecordService.GetPayrollForLastSixMonthAsync();
+        return Ok(result);
+    }
+
 
     [HttpDelete("delete")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Clean.Infrastructure.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20251031161620_ModifiedEmployeeVacationRelation")]
-    partial class ModifiedEmployeeVacationRelation
+    [Migration("20251103232339_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

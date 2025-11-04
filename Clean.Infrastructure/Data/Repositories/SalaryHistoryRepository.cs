@@ -1,4 +1,5 @@
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Filters;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -35,15 +36,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
             .OrderByDescending(s => s.Month)
             .ToListAsync();
     }
-
-    //TODO: add if needed late
-    // public async Task<List<SalaryHistory>> GetSalaryHistoryByEmailAsync(string email)
-    // {
-    //     return await _context.SalaryHistories
-    //         .Where(s => s. == employeeId)
-    //         .OrderByDescending(s => s.Month)
-    //         .ToListAsync();
-    // }
+    
 
     public async Task<SalaryHistory?> GetByIdAsync(int id)
     {
@@ -60,14 +53,33 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
                         && s.Month.Year == month.Year).ToListAsync();
     }
     
-    public async Task<List<SalaryHistory>> GetSalaryHistoriesAsync()
+    public async Task<List<SalaryHistory>> GetSalaryHistoriesAsync(SalaryHistoryFilter filter)
     {
         var list = _context.SalaryHistories
             .Include(e => e.Employee)
-            .OrderByDescending(s=>s.Month).ToListAsync();
-        
-        return await list;
+            .OrderByDescending(s=>s.Month).AsQueryable();
 
+        if (filter.EmployeeId.HasValue)
+        {
+            list = list.Where(s => s.EmployeeId == filter.EmployeeId);
+        }
+
+        if (filter.Year.HasValue)
+        {
+            list = list.Where(s => s.Month.Year == filter.Year);
+        }
+
+        if (filter.FromMonth.HasValue)
+        {
+            list = list.Where(s => s.Month >= filter.FromMonth.Value);
+        }
+
+        if (filter.ToMonth.HasValue)
+        {
+            list = list.Where(s => s.Month <= filter.ToMonth.Value);
+
+        }
+        return await list.ToListAsync();
     }
   
     // public async Task<bool> DeleteAsync(int id)
@@ -91,45 +103,26 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
                          && s.Month.Month == month.Month
                          && s.Month.Year == month.Year)
             .FirstOrDefaultAsync();
-        if (salary is null)
-        {
-            throw new ArgumentException($"No salary for employee was found in database.");
-        }
-
+        
         return salary;
     }
 
-    // public async Task<bool> ExistForMonth(int employeeId, DateOnly month)
-    // {
-    //     var salary= await _context.SalaryHistories
-    //         .Include(s => s.Employee)
-    //         .Where(s => s.EmployeeId == employeeId
-    //                     && s.Month.Month == month.Month
-    //                     && s.Month.Year == month.Year)
-    //         .FirstOrDefaultAsync();
-    //     if (salary is null)
-    //     {
-    //         return false;
-    //     }
-    //
-    //     return true;
-    // }
-
-    public async Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateOnly month)
+    public async Task<bool> ExistForMonth(int employeeId, DateOnly month)
     {
-        var startDate = new DateOnly(month.Year, month.Month, 1);
-        var endDate = startDate.AddMonths(1);
-
-        var totalPaidAmount = await _context.SalaryHistories
+        var salary= await _context.SalaryHistories
+            .Include(s => s.Employee)
             .Where(s => s.EmployeeId == employeeId
-                        && s.Month >= startDate
-                        && s.Month < endDate)
-            .SumAsync(s => (decimal?)s.ExpectedTotal) ?? 0;
-
-        return totalPaidAmount;
-
+                        && s.Month.Month == month.Month
+                        && s.Month.Year == month.Year)
+            .FirstOrDefaultAsync();
+        if (salary is null)
+        {
+            return false;
+        }
+    
+        return true;
     }
-
+    
 
     public async Task<decimal> GetTotalPaidAmountByDepartmentAsync(int departmentId, DateOnly month)
     {
@@ -156,8 +149,31 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
             .OrderByDescending(s => s.Month) 
             .FirstOrDefaultAsync();
     }
-
     
+    public async Task<List<SalaryHistory?>> GetLatestSalaryHistoriesAsync()
+    {
+        return await _context.SalaryHistories
+            .Include(s => s.Employee)
+            .GroupBy(s => s.EmployeeId)
+            .Select(s => s.OrderByDescending(p => p.Month).FirstOrDefault())
+            .ToListAsync();
+    }
+
+    public async Task<decimal> GetDepartmentAverageSalaryAsync(int departmentId)
+    {
+        var salaries = await _context.SalaryHistories
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId)
+            .ToListAsync();
+
+        if (!salaries.Any())
+            return 0;
+
+        return salaries
+            .GroupBy(s => s.EmployeeId)
+            .Select(g => g.OrderByDescending(s => s.Month).First().ExpectedTotal)
+            .Average();
+    }
 
     // public async Task<string> GetEmployeeNameAsync(int employeeId)
     // {
