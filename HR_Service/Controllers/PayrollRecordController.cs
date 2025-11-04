@@ -21,7 +21,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> CreatePayrollRecord([FromBody] AddPayrollRecordDto dto)
     {
         var response = await _payrollRecordService.AddPayrollRecordAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
 
     [HttpGet("get-all")]
@@ -29,7 +29,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> GetAll()
     {
         var response = await _payrollRecordService.GetAllPayrollRecordsAsync();
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
    
     [HttpGet("get-by-id")]
@@ -37,7 +37,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> GetById([FromQuery] int id)
     {
         var response = await _payrollRecordService.GetPayrollRecordByIdAsync(id);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
 
     [HttpGet("get/{employeeId:int}")]
@@ -45,7 +45,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> GetByEmployeeId(int employeeId)
     {
         var response = await _payrollRecordService.GetPayrollRecordsByEmployeeIdAsync(employeeId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
     
 
@@ -54,7 +54,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> GetLatest(int employeeId)
     {
         var response = await _payrollRecordService.GetLatestPayrollRecordByEmployeeIdAsync(employeeId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
     
 
@@ -63,7 +63,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> Update([FromBody] UpdatePayrollRecordDto dto)
     {
         var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
     
     [HttpGet("statistics/total-net-pay")]
@@ -71,7 +71,7 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> GetTotalNetPayForLastSixMonths()
     {
         var result = await _payrollRecordService.GetPayrollForLastSixMonthAsync();
-        return Ok(result);
+        return StatusCode(result.StatusCode, result);
     }
 
 
@@ -80,6 +80,6 @@ public class PayrollRecordController : Controller
     public async Task<IActionResult> Delete([FromQuery] int id)
     {
         var response = await _payrollRecordService.DeletePayrollRecordAsync(id);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
 }
