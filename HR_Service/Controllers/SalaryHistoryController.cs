@@ -23,7 +23,7 @@ public class SalaryHistoryController : Controller
   public async Task<IActionResult> CreateSalaryHistory([FromBody] AddSalaryHistoryDto salaryHistory)
   {
     var response =await _salaryHistoryService.AddSalaryHistoryAsync(salaryHistory);
-    return Ok(response);
+    return StatusCode(response.StatusCode, response);
   }
 
   [HttpGet("get")]
@@ -31,7 +31,7 @@ public class SalaryHistoryController : Controller
   public async Task<IActionResult> GetAllSalaryHistories([FromQuery] SalaryHistoryFilter filter)
   {
     var response = await _salaryHistoryService.GetAllAsync(filter);
-    return Ok(response);
+    return StatusCode(response.StatusCode, response);
   }
 
   [HttpGet("get-latest")]
@@ -39,7 +39,7 @@ public class SalaryHistoryController : Controller
   public async Task<IActionResult> GetLatestSalaryHistory([FromQuery] SalaryHistoryFilter filter)
   {
     var response = await _salaryHistoryService.GetLatestSalaryHistoriesAsync(filter);
-    return Ok(response);
+    return StatusCode(response.StatusCode, response);
   }
 
   [HttpGet("get-by-id")]
@@ -47,7 +47,7 @@ public class SalaryHistoryController : Controller
   public async Task<IActionResult> GetSalaryHistoryById([FromQuery] int id)
   {
     var response = await _salaryHistoryService.GetByIdAsync(id);
-    return Ok(response);
+    return StatusCode(response.StatusCode, response);
   }
 
   [HttpGet("get-by-employee/{employeeId:int}")]
@@ -55,7 +55,7 @@ public class SalaryHistoryController : Controller
   public async Task<IActionResult> GetSalaryHistoryByEmployeeId(int employeeId)
   {
     var response = await _salaryHistoryService.GetSalaryHistoryByEmployeeIdAsync(employeeId);
-    return Ok(response);
+    return StatusCode(response.StatusCode, response);
   }
   //
   // [HttpGet("get-all")]

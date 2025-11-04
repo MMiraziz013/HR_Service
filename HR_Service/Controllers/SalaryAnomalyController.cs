@@ -21,7 +21,7 @@ public class SalaryAnomalyController : Controller
    public async Task<IActionResult> GetAllAsync()
    {
       var response = await _salaryAnomaly.GetAllAsync();
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
 
    [HttpGet("get-unviewed")]
@@ -29,7 +29,7 @@ public class SalaryAnomalyController : Controller
    public async Task<IActionResult> GetUnviewed()
    {
       var response = await _salaryAnomaly.GetUnviewedAsync();
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
 
    [HttpGet("get")]
@@ -37,14 +37,14 @@ public class SalaryAnomalyController : Controller
    public async Task<IActionResult> GetByEmployeeId([FromQuery] int employeeId)
    {
       var response = await _salaryAnomaly.GetAnomalyByEmployeeId(employeeId);
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
    [HttpPut("mark-viewed")]
    [PermissionAuthorize(PermissionConstants.SalaryAnomalies.Manage)]
    public async Task<IActionResult> MarkAsViewed([FromBody] int id)
    {
       var response = await _salaryAnomaly.MarkAsViewedAsync(id);
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
 
    [HttpPut("add-comment")]
@@ -52,7 +52,7 @@ public class SalaryAnomalyController : Controller
    public async Task<IActionResult> AddReviewComment([FromBody] AddReviewCommnetDto dto)
    {
       var response = await _salaryAnomaly.AddReviewCommentAsync(dto.Id, dto.ReviewComment);
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
 
    [HttpDelete("delete")]
@@ -60,7 +60,7 @@ public class SalaryAnomalyController : Controller
    public async Task<IActionResult> Delete([FromBody] int id)
    {
       var response = await _salaryAnomaly.DeleteAsync(id);
-      return Ok(response);
+      return StatusCode(response.StatusCode, response);
    }
 
 
