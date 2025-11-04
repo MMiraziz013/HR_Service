@@ -26,7 +26,7 @@ public class UsersController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.GetUserProfileAsync(userId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetAllAsync([FromQuery] string? search = null)
     {
         var response = await _userService.GetAllUserProfilesAsync(search);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public class UsersController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.UpdateMyProfileAsync(dto, userId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
@@ -61,6 +61,6 @@ public class UsersController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.UpdatePasswordAsync(dto, userId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 }

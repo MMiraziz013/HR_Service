@@ -11,6 +11,4 @@ public interface IDepartmentRepository
     Task<bool> DeleteDepartmentAsync(int id);
 
     Task<Department?> GetDepartmentByNameAsync(string name);
-    
-    //TODO: Finish Department repo methods
 }

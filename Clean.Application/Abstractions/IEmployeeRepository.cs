@@ -7,7 +7,6 @@ namespace Clean.Application.Abstractions;
 
 public interface IEmployeeRepository
 {
-    //TODO: Finish Employee Repository methods
     Task<bool> AddAsync(Employee employee);
 
     Task<(List<GetEmployeeDto> Employees, int TotalRecords)> GetActiveEmployeesPaginatedAsync(EmployeePaginationFilter filter);
@@ -15,6 +14,8 @@ public interface IEmployeeRepository
     Task<List<Employee>> GetActiveEmployeesAsync();
     
     Task<Employee?> GetEmployeeByIdAsync(int id);
+
+    Task<Employee?> GetEmployeeByUserId(int userId);
 
     Task<Employee?> UpdateEmployeeAsync(Employee employee);
 

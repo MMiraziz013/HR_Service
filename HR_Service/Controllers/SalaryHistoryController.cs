@@ -30,12 +30,12 @@ public class SalaryHistoryController : Controller
   [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
   public async Task<IActionResult> GetSalaryHistoryByEmployeeId(int employeeId)
   {
-    var response =await _salaryHistoryService.GetSalaryHistoryByEmployeeIdAsync(employeeId);
+    var response = await _salaryHistoryService.GetSalaryHistoryByEmployeeIdAsync(employeeId);
     return Ok(response);
   }
 
   [HttpGet("get")]// for hr 
-  [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
+  [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
   public async Task<IActionResult> GetEmployeeSalaryHistoryForHr([FromQuery] int employeeId)
   {
     var response =await _salaryHistoryService.GetSalaryHistoryByEmployeeIdAsync(employeeId);
@@ -43,7 +43,7 @@ public class SalaryHistoryController : Controller
   }
 
   [HttpGet("get-by-id")] // for hr
-  [PermissionAuthorize(PermissionConstants.SalaryHistories.View)]
+  [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
   public async Task<IActionResult> GetSalaryHistoryBySalaryId([FromQuery] int salaryId)
   {
     var response = await _salaryHistoryService.GetSalaryHistoryByIdAsync(salaryId);

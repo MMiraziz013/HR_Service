@@ -17,40 +17,36 @@ public class EmployeeController : ControllerBase
         _employeeService = employeeService;
     }
 
-    // ✅ Get all employees with pagination & filtering
     [HttpGet]
     [PermissionAuthorize(PermissionConstants.Employees.View)]
     public async Task<IActionResult> GetAllAsync([FromQuery] EmployeePaginationFilter filter)
     {
         var response = await _employeeService.GetEmployeesAsync(filter);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    // ✅ Get a single employee by ID
     [HttpGet("{id:int}")]
     [PermissionAuthorize(PermissionConstants.Employees.View)]
     public async Task<IActionResult> GetByIdAsync(int id)
     {
         var response = await _employeeService.GetEmployeeByIdAsync(id);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    // ✅ Update an employee (HR/Admin)
     [HttpPut("{id:int}")]
     [PermissionAuthorize(PermissionConstants.Employees.Manage)]
     public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdateEmployeeDto dto)
     {
-        dto.Id = id; // ensure route ID is assigned to DTO
+        dto.Id = id;
         var response = await _employeeService.UpdateEmployeeAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    // ✅ Deactivate or delete an employee (optional feature)
     [HttpDelete("{id:int}")]
     [PermissionAuthorize(PermissionConstants.Employees.Manage)]
     public async Task<IActionResult> DeactivateAsync(int id)
     {
         var response = await _employeeService.DeactivateEmployeeAsync(id);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.VacationBalance;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/vacation_balances")]
 public class VacationBalanceController : Controller
 {
     private readonly IVacationBalanceService _vacationBalanceService;
@@ -22,39 +23,48 @@ public class VacationBalanceController : Controller
     public async Task<IActionResult> AddVacationBalance([FromBody] AddVacationBalanceDto dto)
     {
         var response = await _vacationBalanceService.AddVacationBalanceAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    [HttpGet("get-all")]
+    [HttpGet("all")]
     [PermissionAuthorize(PermissionConstants.VacationBalance.Manage)]
     public async Task<IActionResult> GetAllVacationBalances([FromQuery] VacationBalanceFilter filter)
     {
         var response = await _vacationBalanceService.GetAllVacationBalancesAsync(filter);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    [HttpGet("get-latest")]
+    [HttpGet("latest")]
     [PermissionAuthorize(PermissionConstants.VacationBalance.Manage)]
     public async Task<IActionResult> GetLatestVacationBalances([FromQuery] VacationBalanceFilter filter)
     {
         var response = await _vacationBalanceService.GetLatestVacationBalancesAsync(filter);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    [HttpGet("get-by-id")]
+    [HttpGet("{id:int}")]
     [PermissionAuthorize(PermissionConstants.VacationBalance.Manage)]
-    public async Task<IActionResult> GetVacationBalanceById([FromQuery] int id)
+    public async Task<IActionResult> GetVacationBalanceById(int id)
     {
         var response = await _vacationBalanceService.GetVacationBalanceByIdAsync(id);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
-    [HttpGet("get-by-employee/{employeeId:int}")]
+    [HttpGet("by-employee/{employeeId:int}")]
     [PermissionAuthorize(PermissionConstants.VacationBalance.Manage)]
     public async Task<IActionResult> GetVacationBalanceByEmployeeId(int employeeId)
     {
         var response = await _vacationBalanceService.GetVacationBalanceByEmployeeIdAsync(employeeId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
+    }
+
+    [HttpGet("me")]
+    [PermissionAuthorize(PermissionConstants.VacationBalance.ManageSelf)]
+    public async Task<IActionResult> GetMyVacationBalanceAsync()
+    {
+        var thisEmployeeId = User.FindFirstValue("EmployeeId");
+        var response = await _vacationBalanceService.GetVacationBalanceByEmployeeIdAsync(int.Parse(thisEmployeeId!));
+        return StatusCode(response.StatusCode, response);    
     }
 
     [HttpPut("update")]
@@ -62,7 +72,7 @@ public class VacationBalanceController : Controller
     public async Task<IActionResult> UpdateVacationBalance([FromBody] UpdateVacationBalanceDto dto)
     {
         var response = await _vacationBalanceService.UpdateVacationBalanceAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
     // [HttpDelete("delete")]

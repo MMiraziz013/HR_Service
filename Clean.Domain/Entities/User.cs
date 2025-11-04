@@ -9,4 +9,6 @@ public class User : IdentityUser<int>
     public UserRole Role { get; set; }
     
     public Employee? Employee { get; set; }
+
+    public int? EmployeeId { get; set; }
 }

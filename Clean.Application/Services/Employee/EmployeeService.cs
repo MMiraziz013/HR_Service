@@ -48,6 +48,33 @@ public class EmployeeService : IEmployeeService
         return new Response<GetEmployeeDto?>(HttpStatusCode.OK, employeeDto);
     }
 
+    public async Task<Response<GetEmployeeDto?>> GetEmployeeByUserId(int userId)
+    {
+        var employee = await _employeeRepository.GetEmployeeByUserId(userId);
+
+        if (employee == null)
+        {
+            return new Response<GetEmployeeDto?>(HttpStatusCode.NotFound, "Employee not found");
+        }
+
+        var employeeDto = new GetEmployeeDto
+        {
+            Id = employee.Id,
+            FirstName = employee.FirstName,
+            LastName = employee.LastName,
+            BaseSalary = employee.SalaryHistories
+                .OrderByDescending(sh => sh.Month)
+                .Select(sh => sh.BaseAmount)
+                .FirstOrDefault(),
+            DepartmentName = employee.Department?.Name ?? "Unknown",
+            HireDate = employee.HireDate.ToString("yyyy-MM-dd"),
+            Position = employee.Position,
+            IsActive = employee.IsActive
+        };
+
+        return new Response<GetEmployeeDto?>(HttpStatusCode.OK, employeeDto);
+    }
+
     public async Task<Response<GetEmployeeDto>> UpdateEmployeeAsync(UpdateEmployeeDto dto)
     {
         var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.Id);

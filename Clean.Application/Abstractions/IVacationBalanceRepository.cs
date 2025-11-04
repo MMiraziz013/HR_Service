@@ -12,4 +12,7 @@ public interface IVacationBalanceRepository
     Task<VacationBalance?> GetVacationBalanceByIdAsync(int vacationBalanceId);
     
     // Task<VacationBalance> GetVacationBalanceByEmployeeIdAsync(int employeeId);
-    Task<VacationBalance?> UpdateVacationBalanceAsync(VacationBalance dto);}
+    Task<VacationBalance?> UpdateVacationBalanceAsync(VacationBalance dto);
+    
+    Task<bool> ExistsAsync(int employeeId, int year);
+}

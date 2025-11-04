@@ -39,6 +39,7 @@ public static class InfrastructureInjection
         services.AddTransient<IEmployeeRepository, EmployeeRepository>();
         services.AddTransient<IDepartmentRepository, DepartmentRepository>();
         services.AddTransient<IVacationBalanceRepository, VacationBalanceRepository>();
+        services.AddTransient<IVacationRecordRepository, VacationRecordRepository>();
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
         return services;

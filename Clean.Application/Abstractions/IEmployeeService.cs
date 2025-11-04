@@ -11,6 +11,8 @@ public interface IEmployeeService
 
     Task<Response<GetEmployeeDto?>> GetEmployeeByIdAsync(int id);
 
+    Task<Response<GetEmployeeDto?>> GetEmployeeByUserId(int userId);
+
     Task<Response<GetEmployeeDto>> UpdateEmployeeAsync(UpdateEmployeeDto dto);
     
     Task<Response<bool>> DeactivateEmployeeAsync(int id);
