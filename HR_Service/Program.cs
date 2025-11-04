@@ -147,7 +147,29 @@ public class Program
                 .WithIdentity("VacationBalanceTrigger")
                 .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 0))
             );
+            
+            var salaryJobKey = new JobKey("SalaryHistoryJob");
+            q.AddJob<SalaryHistoryJob>(opts => opts.WithIdentity(salaryJobKey));
+
+            q.AddTrigger(opts => opts
+                .ForJob(salaryJobKey)
+                .WithIdentity("SalaryHistoryTrigger")
+                .WithSchedule(CronScheduleBuilder.MonthlyOnDayAndHourAndMinute(1, 2, 0))
+            );
+           
+            var anomalyJobKey = new JobKey("SalaryAnomalyJob");
+            q.AddJob<SalaryAnomalyJob>(opts => opts.WithIdentity(anomalyJobKey));
+
+            q.AddTrigger(opts => opts
+                    .ForJob(anomalyJobKey)
+                    .WithIdentity("SalaryAnomalyTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 0)) 
+                                 
+
+                );
         });
+        
+        
 
         // ✅ Add Quartz Hosted Service (runs scheduler in background)
         builder.Services.AddQuartzHostedService(options =>
@@ -162,7 +184,7 @@ public class Program
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<IDataContext>();
-            await db.MigrateAsync();
+            // await db.MigrateAsync();
 
             var services = scope.ServiceProvider;
 

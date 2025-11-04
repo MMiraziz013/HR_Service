@@ -1,4 +1,5 @@
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Filters;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,29 @@ public class PayrollRecordRepository: IPayrollRecordRepository
     }
 
 
+    public async Task<IEnumerable<PayrollRecord>> GetPayrollRecordsAsync(PayrollRecordFilter filter)
+    {
+        var query = _context.PayrollRecords
+            .Include(p => p.Employee)
+            .AsQueryable();
+
+        if (filter.EmployeeId.HasValue)
+            query = query.Where(p => p.EmployeeId == filter.EmployeeId.Value);
+
+        if (filter.FromDate.HasValue)
+            query = query.Where(p => p.PeriodStart >= filter.FromDate.Value);
+
+        if (filter.ToDate.HasValue)
+            query = query.Where(p => p.PeriodEnd <= filter.ToDate.Value);
+
+        if (filter.MinNetPay.HasValue)
+            query = query.Where(p => p.NetPay >= filter.MinNetPay.Value);
+
+        if (filter.MaxNetPay.HasValue)
+            query = query.Where(p => p.NetPay <= filter.MaxNetPay.Value);
+
+        return await query.ToListAsync();
+    }
 
     public async Task<PayrollRecord?> GetByIdAsync(int id)
     {
@@ -91,4 +115,36 @@ public class PayrollRecordRepository: IPayrollRecordRepository
         var isDeleted = await _context.SaveChangesAsync();
         return isDeleted > 0;
     }
+    public  async Task<List<PayrollRecord?>> GetLatestPayrollAsync()
+    {
+      return await _context.PayrollRecords
+          .Include(p=>p.Employee)
+          .GroupBy(s=>s.EmployeeId)
+          .Select(s=>s.OrderByDescending(p=>p.PeriodEnd).FirstOrDefault())
+          .ToListAsync();
+    }
+
+    public async Task<decimal> GetTotalPaidForMonth(DateOnly month)
+    {
+        return await _context.PayrollRecords
+            .Where(s => s.PeriodStart.Month == month.Month && s.PeriodStart.Year == month.Year)
+            .SumAsync(s => s.NetPay);
+    }
+
+    public async Task<decimal> GetDepartmentAveragePayrollAsync(int departmentId)
+    {
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId)
+            .ToListAsync();
+
+        if (!payrolls.Any())
+            return 0;
+
+        return payrolls
+            .GroupBy(s => s.EmployeeId)
+            .Select(s => s.OrderByDescending(s => s.PeriodStart).First().NetPay)
+            .Average();
+    }
+    
 }

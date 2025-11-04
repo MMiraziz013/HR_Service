@@ -6,7 +6,7 @@ namespace Clean.Application.Abstractions;
 public interface IPayrollRecordService
 {
     
-    Task<Response<bool>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto);
+    Task<Response<GetPayrollRecordDto>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto);
     
     Task<Response<List<GetPayrollRecordDto>>> GetAllPayrollRecordsAsync();
     
@@ -19,4 +19,5 @@ public interface IPayrollRecordService
     Task<Response<bool>> UpdatePayrollRecordAsync(UpdatePayrollRecordDto payrollDto);
     
     Task<Response<bool>> DeletePayrollRecordAsync(int id);
+    Task<Response<List<MonthPayrollDto>>> GetPayrollForLastSixMonthAsync();
 }

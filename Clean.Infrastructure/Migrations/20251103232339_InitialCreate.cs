@@ -5,7 +5,7 @@
 namespace Clean.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class ModifiedEmployeeVacationRelation : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)

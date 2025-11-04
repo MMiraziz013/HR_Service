@@ -1,7 +1,9 @@
 using System.Net;
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Responses;
 using Clean.Application.Dtos.SalaryHistory;
+using Microsoft.Extensions.Logging;
 
 namespace Clean.Application.Services.SalaryHistory;
 
@@ -10,20 +12,61 @@ public class SalaryHistoryService : ISalaryHistoryService
     private readonly ISalaryHistoryRepository _repository;
 private readonly IEmployeeRepository _employeeRepository;
 private readonly IDepartmentRepository _departmentRepository;
-    public SalaryHistoryService(ISalaryHistoryRepository repository, IEmployeeRepository employeeRepository,IDepartmentRepository departmentRepository)
+private readonly ILogger<SalaryHistoryService> _logger;
+    public SalaryHistoryService(ISalaryHistoryRepository repository, IEmployeeRepository employeeRepository,IDepartmentRepository departmentRepository,ILogger<SalaryHistoryService> logger)
     {
         _repository = repository;
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
+        _logger = logger;
     }
-    
-    public async Task<Response<bool>> AddSalaryHistoryAsync(AddSalaryHistoryDto dto)
+    public async Task GenerateMonthlySalaryHistoryAsync()
     {
+        var employees = await _employeeRepository.GetActiveEmployeesAsync();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var currentMonth = new DateOnly(today.Year, today.Month, 1);
         
+        var existingSalaries = await _repository.GetSalaryHistoriesAsync(
+            new SalaryHistoryFilter{
+                FromMonth = currentMonth,
+                ToMonth = currentMonth});
+
+        foreach (var employee in employees)
+        {
+            if (existingSalaries.Any(s => s.EmployeeId == employee.Id))
+                continue;
+            
+            var lastSalary = await _repository.GetLatestSalaryHistoryAsync(employee.Id);
+
+         
+            if (lastSalary == null)
+            {
+                _logger.LogWarning("Skipping EmployeeId {Id}: no previous salary record found.", employee.Id);
+                continue;
+            }
+
+            var dto = new AddSalaryHistoryDto
+            {
+                EmployeeId = employee.Id,
+                Month = currentMonth,
+                BaseAmount = lastSalary.BaseAmount,
+                BonusAmount = lastSalary.BonusAmount
+            };
+
+            await AddSalaryHistoryAsync(dto);
+
+            _logger.LogInformation("Auto-created salary history for EmployeeId {Id} for {Month}", 
+                employee.Id, currentMonth);
+        }
+    }
+
+    public async Task<Response<GetSalaryHistoryDto>> AddSalaryHistoryAsync(AddSalaryHistoryDto dto)
+    {
+        var thisMonth = DateTime.UtcNow.Month;
             var employee=await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
             if (employee == null)
             {
-                return new Response<bool>(
+                return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.BadRequest,
                     message: "Employee with this id is not found");
             } 
@@ -34,37 +77,48 @@ private readonly IDepartmentRepository _departmentRepository;
                 BonusAmount = dto.BonusAmount,
                 Month = DateOnly.FromDateTime(DateTime.UtcNow)
             };
-            
+            if (entity.Month.Month != thisMonth)
+            {
+                return new Response<GetSalaryHistoryDto>(
+                    HttpStatusCode.BadRequest,
+                    "You can only create salary for current month.");
+            }
             var isAdded = await _repository.AddAsync(entity);
 
             if (!isAdded)
             {
-                return new Response<bool>(
+                return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.InternalServerError,
-                    message: "Failed to add salary history.",
-                    data: false
+                    message: "Failed to add salary history."
+                    
                 );
             }
 
-            return new Response<bool>(
+            return new Response<GetSalaryHistoryDto>(
                 HttpStatusCode.OK,
                 message: "Salary history added successfully.",
-                data: true
+                new GetSalaryHistoryDto
+                {
+                    Id=entity.Id,
+                    BaseAmount = entity.BaseAmount,
+                    BonusAmount = entity.BonusAmount,
+                    ExpectedTotal = entity.ExpectedTotal,
+                    Month = entity.Month,
+                    EmployeeId = entity.EmployeeId
+                }
             );
     }
-
-
-  
+    
     public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByEmployeeIdAsync(int id)
     {
-        if (id <= 0)
+        if (id is 0)
         {
             return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
                 HttpStatusCode.BadRequest,
-                message: "Invalid Employee ID. Please provide a valid ID."
+                message: $"Employee id cannot be 0."
             );
         }
-        
+
         var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
         if (employee is null)
         {
@@ -73,7 +127,7 @@ private readonly IDepartmentRepository _departmentRepository;
                 message: $"Employee with ID {id} not found."
             );
         }
-        
+
         var histories = await _repository.GetSalaryHistoryByEmployeeIdAsync(id);
         if (!histories.Any())
         {
@@ -82,7 +136,7 @@ private readonly IDepartmentRepository _departmentRepository;
                 message: $"No salary history found for employee with ID {id}."
             );
         }
-        
+
         var dtoList = histories.Select(h => new GetSalaryHistoryWithEmployeeDto()
         {
             Id = h.Id,
@@ -92,68 +146,51 @@ private readonly IDepartmentRepository _departmentRepository;
             EmployeeId = h.EmployeeId
         }).ToList();
 
-
         return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
             HttpStatusCode.OK,
             message: "Salary history retrieved successfully.",
             data: dtoList
         );
     }
-    
-    public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByIdAsync(int? id)
+
+    public async Task<PaginatedResponse<GetSalaryHistoryDto>> GetAllAsync(SalaryHistoryFilter filter)
     {
-        if (id is null or 0)
+        var salaries = await _repository.GetSalaryHistoriesAsync(filter);
+        if ( !salaries.Any())
         {
-            var allHistories = await _repository.GetSalaryHistoriesAsync();
-
-            if (!allHistories.Any())
+            return new PaginatedResponse<GetSalaryHistoryDto>(
+                new List<GetSalaryHistoryDto>(), // empty list
+                1,
+                1,
+                0
+            )
             {
-                return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
-                    HttpStatusCode.NotFound,
-                    message: "No salary history records found in the database."
-                );
-            }
-
-            var dtos = allHistories.Select(h => new GetSalaryHistoryWithEmployeeDto
-            {
-                Id = h.Id,
-                Month = h.Month,
-                EmployeeId = h.EmployeeId,
-                EmployeeName = h.Employee.FirstName,
-                ExpectedTotal = h.ExpectedTotal
-            }).ToList();
-
-            return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
-                HttpStatusCode.OK,
-                message: "All salary histories retrieved successfully.",
-                data: dtos
-            );
+                StatusCode = 404,
+                Message = "No salary records found."
+            };
         }
 
-        var history = await _repository.GetByIdAsync(id.Value);
-
-        if (history == null)
+        var mapped = salaries.Select(h => new GetSalaryHistoryDto
         {
-            return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
-                HttpStatusCode.NotFound,
-                message: $"Salary history with ID {id} not found."
-            );
-        }
+            Id = h.Id,
+            EmployeeId = h.EmployeeId,
+            Month = h.Month,
+            ExpectedTotal = h.ExpectedTotal,
+            EmployeeName = $"{h.Employee.FirstName} {h.Employee.LastName}"
 
-        var dto = new GetSalaryHistoryWithEmployeeDto
-        {
-            Id = history.Id,
-            EmployeeId = history.EmployeeId,
-            Month = history.Month,
-            ExpectedTotal = history.ExpectedTotal,
-            EmployeeName = history.Employee.FirstName
-        };
+        }).ToList();
         
-        return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
-            HttpStatusCode.OK,
-            message: "Salary history retrieved successfully.",
-            data: [dto]
-        );
+        return new PaginatedResponse<GetSalaryHistoryDto>(
+            mapped,
+            pageNumber: 1,
+            pageSize: mapped.Count,
+            totalRecords: mapped.Count
+        )
+        {
+            StatusCode = 200,
+            Message = "Salary records retrieved successfully."
+        };
+
     }
     
     public async Task<Response<GetSalaryHistoryWithEmployeeDto>> GetSalaryHistoryByMonthAsync(int employeeId, DateOnly month)
@@ -245,6 +282,104 @@ private readonly IDepartmentRepository _departmentRepository;
             message: $"Salary history for {month.Month}-{month.Year} retrieved successfully", mapped);
 
     }
+
+    public async Task<Response<List<GetSalaryHistoryDto>>> GetLatestSalaryHistoriesAsync(SalaryHistoryFilter? filter = null)
+    {
+
+        var activeEmployees = await _employeeRepository.GetActiveEmployeesAsync();
+        
+        if (filter?.EmployeeId != null)
+        {
+            activeEmployees = activeEmployees
+                .Where(e => e.Id == filter.EmployeeId.Value)
+                .ToList();
+        }
+
+        var latestHistories = activeEmployees
+            .Where(e => e.SalaryHistories.Any())
+            .Select(e =>
+            {
+                var latest = e.SalaryHistories
+                    .OrderByDescending(s => s.Month)
+                    .First();
+
+                return new GetSalaryHistoryDto
+                {
+                    Id = latest.Id,
+                    Month = latest.Month,
+                    BaseAmount = latest.BaseAmount,
+                    BonusAmount = latest.BonusAmount,
+                    ExpectedTotal = latest.BaseAmount + latest.BonusAmount,
+                    EmployeeId = latest.EmployeeId,
+                    EmployeeName = latest.Employee.FirstName+" "+latest.Employee.LastName
+                };
+            })
+            .ToList();
+
+        return new Response<List<GetSalaryHistoryDto>>(HttpStatusCode.OK, latestHistories);
+    }
+
+    public async Task<Response<GetSalaryHistoryDto>> GetByIdAsync(int id)
+    {
+        var salary = await _repository.GetByIdAsync(id);
+        if (salary is null)
+        {
+            return new Response<GetSalaryHistoryDto>(
+                HttpStatusCode.NotFound,
+                $"Salary history with ID {id} is not found.");
+        }
+
+        var mapped = new GetSalaryHistoryDto
+        {
+            Id = salary.Id,
+            BaseAmount = salary.BaseAmount,
+            BonusAmount = salary.BonusAmount,
+            ExpectedTotal = salary.ExpectedTotal,
+            Month = salary.Month,
+            EmployeeName = salary.Employee.FirstName + " " + salary.Employee.LastName
+        };
+
+        return new Response<GetSalaryHistoryDto>(
+            HttpStatusCode.OK,
+            "Salary history retrieved successfully.",
+            mapped);
+    }
+    //    public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByIdAsync(int id)
+//    {
+//        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
+//     if (id is 0 || employee is null)
+//     {
+//         return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
+//             HttpStatusCode.NotFound,
+//             message: $"Employee with id {id} is not found.");
+//     }
+//
+//     
+//     var employeeHistories = await _repository.GetSalaryHistoryByEmployeeIdAsync(id);
+//
+//     if ( !employeeHistories.Any())
+//     {
+//         return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
+//             HttpStatusCode.NotFound,
+//             message: $"No salary history found for employee ID {id}."
+//         );
+//     }
+//
+//     var employeeDtos = employeeHistories.Select(h => new GetSalaryHistoryWithEmployeeDto
+//     {
+//         Id = h.Id,
+//         EmployeeId = h.EmployeeId,
+//         Month = h.Month,
+//         ExpectedTotal = h.ExpectedTotal,
+//         EmployeeName = $"{h.Employee.FirstName} {h.Employee.LastName}"
+//     }).ToList();
+//
+//     return new Response<List<GetSalaryHistoryWithEmployeeDto>>(
+//         HttpStatusCode.OK,
+//         message: "Salary history retrieved successfully.",
+//         data: employeeDtos
+//     );
+// }
     
     // public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoriesAsync()
     // {

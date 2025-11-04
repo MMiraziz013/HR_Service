@@ -1,7 +1,9 @@
 using System.Net;
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.PayrollRecord;
 using Clean.Application.Dtos.Responses;
+using Microsoft.Extensions.Logging;
 
 namespace Clean.Application.Services.PayrollRecord;
 
@@ -10,46 +12,121 @@ public class PayrollRecordService : IPayrollRecordService
     private readonly IPayrollRecordRepository _payrollRecordRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
-
-    public PayrollRecordService(IPayrollRecordRepository payrollRecordRepository, IEmployeeRepository employeeRepository, ISalaryHistoryRepository salaryHistoryRepository)
+    private readonly ILogger<PayrollRecordService> _logger;
+    public PayrollRecordService(IPayrollRecordRepository payrollRecordRepository, IEmployeeRepository employeeRepository, ISalaryHistoryRepository salaryHistoryRepository,ILogger<PayrollRecordService> logger)
     {
         _payrollRecordRepository = payrollRecordRepository;
         _employeeRepository = employeeRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
+        _logger = logger;
     }
 
-    public async Task<Response<bool>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto)
+    
+   public async Task GenerateMonthlyPayrollRecordsAsync()
+{
+    var employees = await _employeeRepository.GetActiveEmployeesAsync();
+
+  
+    var today = DateOnly.FromDateTime(DateTime.UtcNow);
+    var startOfMonth = new DateOnly(today.Year, today.Month, 1);
+    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+    
+    var existingPayrolls = await _payrollRecordRepository.GetPayrollRecordsAsync(
+        new PayrollRecordFilter
+        {
+            FromDate = startOfMonth,
+            ToDate = endOfMonth
+        });
+    var existingPayrollsList = existingPayrolls.ToList();
+    foreach (var employee in employees)
     {
-        var employee = await _employeeRepository.GetEmployeeByIdAsync(payrollDto.EmployeeId);
-        if (employee is null)
-        {
-            return new Response<bool>(HttpStatusCode.NotFound, "Employee not found.");
+        if (existingPayrollsList.Any(p => p.EmployeeId == employee.Id))
+            continue;
 
-        }
-        var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(payrollDto.EmployeeId);
-        if (latestSalary is null)
-        {
-            return new Response<bool>(HttpStatusCode.NotFound, "No Salary record found for this employee");
-        }
+       
+        var lastPayroll = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employee.Id);
 
-        var payroll = new Domain.Entities.PayrollRecord
+        if (lastPayroll == null)
         {
-            EmployeeId = payrollDto.EmployeeId,
-            PeriodStart = payrollDto.PeriodStart,
-            PeriodEnd = payrollDto.PeriodEnd,
-            GrossPay = latestSalary.ExpectedTotal,
-            Deductions = payrollDto.Deductions
-        };
-        var isAdded = await _payrollRecordRepository.AddAsync(payroll);
-        if (isAdded == false)
+            _logger.LogWarning("Skipping EmployeeId {Id}: no previous payroll found.", employee.Id);
+            continue;
+        }
+        var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(employee.Id);
+        if (latestSalary == null)
         {
-            return new Response<bool>(HttpStatusCode.BadRequest, "Error while adding new payroll record.");
+            _logger.LogWarning("Skipping EmployeeId {Id}: no salary history found.", employee.Id);
+            continue;
         }
 
-        return new Response<bool>(HttpStatusCode.OK, $"Payroll record for {employee.FirstName} was added successfully");
+    
+        var newPayroll = new AddPayrollRecordDto()
+        {
+            EmployeeId = employee.Id,
+            PeriodStart = startOfMonth,
+            PeriodEnd = endOfMonth,
+            Deductions = lastPayroll.Deductions, 
+              };
 
+        await AddPayrollRecordAsync(newPayroll);
 
+        _logger.LogInformation("Auto-generated payroll for EmployeeId {Id} for {Month}", 
+            employee.Id, startOfMonth.ToString("yyyy-MM"));
     }
+    
+}
+
+   public async Task<Response<GetPayrollRecordDto>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto)
+{
+    var employee = await _employeeRepository.GetEmployeeByIdAsync(payrollDto.EmployeeId);
+    if (employee is null)
+    {
+        return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, "Employee not found.");
+    }
+
+    var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(payrollDto.EmployeeId);
+    if (latestSalary is null)
+    {
+        return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, "No Salary record found for this employee.");
+    }
+
+
+    var periodStart = latestSalary.Month;  
+    var periodEnd = periodStart.AddMonths(1);
+
+    var payroll = new Domain.Entities.PayrollRecord
+    {
+        EmployeeId = payrollDto.EmployeeId,
+        PeriodStart = periodStart,
+        PeriodEnd = periodEnd,
+        GrossPay = latestSalary.ExpectedTotal,
+        Deductions = payrollDto.Deductions,
+        CreatedAt = DateTime.UtcNow
+    };
+
+    var isAdded = await _payrollRecordRepository.AddAsync(payroll);
+    if (!isAdded)
+    {
+        return new Response<GetPayrollRecordDto>(HttpStatusCode.BadRequest, "Error while adding new payroll record.");
+    }
+
+    return new Response<GetPayrollRecordDto>(
+        HttpStatusCode.OK,
+        $"Payroll record for {employee.FirstName} was added successfully",
+        new GetPayrollRecordDto
+        {
+            Id = payroll.Id,
+            PeriodStart = payroll.PeriodStart,
+            PeriodEnd = payroll.PeriodEnd,
+            GrossPay = payroll.GrossPay,
+            Deductions = payroll.Deductions,
+            NetPay = payroll.NetPay,
+            CreatedAt = payroll.CreatedAt,
+            EmployeeId = payroll.EmployeeId,
+            EmployeeName = $"{employee.FirstName} {employee.LastName}"
+        }
+    );
+}
+
 
     public async Task<Response<List<GetPayrollRecordDto>>> GetAllPayrollRecordsAsync()
     {
@@ -201,5 +278,24 @@ public class PayrollRecordService : IPayrollRecordService
 
         return new Response<bool>(HttpStatusCode.OK, "Payroll record is deleted successfully", true);
 
+    }
+    
+    //for bar chart
+    public async Task<Response<List<MonthPayrollDto>>> GetPayrollForLastSixMonthAsync()
+    {
+        var result = new List<MonthPayrollDto>();
+        var today = DateTime.Today;
+
+        for (int i = 5; i >= 0; i--)
+        {
+            var month = new DateOnly(today.Year, today.Month, 1).AddMonths(-i);
+            var total = await _payrollRecordRepository.GetTotalPaidForMonth(month);
+            result.Add(new MonthPayrollDto
+            {
+                Month = month.ToString("MMM yyyy"), // e.g., "Nov 2025"
+                TotalNetPay = total
+            });
+        }
+        return new Response<List<MonthPayrollDto>>(HttpStatusCode.OK, result);
     }
 }

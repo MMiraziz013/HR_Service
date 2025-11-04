@@ -7,4 +7,6 @@ public class GetSalaryHistoryDto
     public decimal BaseAmount { get; set; }
     public decimal BonusAmount { get; set; }
     public decimal ExpectedTotal { get; set; }
+    public int EmployeeId { get; set; }
+    public string EmployeeName { get; set; }
 }
