@@ -20,12 +20,14 @@ namespace Clean.Application.Security.Permission
         public static class VacationRecords
         {
             public const string View = "Permissions.VacationRecords.View";
+            public const string ManageSelf = "Permissions.VacationRecords.ManageSelf";
             public const string Manage = "Permissions.VacationRecords.Manage";
         }
 
         public static class VacationBalance
         {
             public const string View = "Permissions.VacationBalance.View";
+            public const string ManageSelf = "Permissions.VacationBalance.ManageSelf";
             public const string Manage = "Permissions.VacationBalance.Manage";
         }
 

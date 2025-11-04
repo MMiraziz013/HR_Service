@@ -2,6 +2,7 @@ using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.VacationBalance;
 using Clean.Domain.Entities;
+using Clean.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Infrastructure.Data.Repositories;
@@ -26,6 +27,9 @@ public class VacationBalanceRepository : IVacationBalanceRepository
     {
         var query =  _context.VacationBalances
             .Include(vb => vb.Employee)
+            .ThenInclude(e=> e.Department)
+            .Include(vb=> vb.Employee)
+            .ThenInclude(e=> e.SalaryHistories)
             .AsQueryable();
 
         if (filter.EmployeeId.HasValue)
@@ -54,6 +58,9 @@ public class VacationBalanceRepository : IVacationBalanceRepository
     {
         var vacationBalance = await _context.VacationBalances
             .Include(vb=> vb.Employee)
+            .ThenInclude(e=> e.Department)
+            .Include(vb=> vb.Employee)
+            .ThenInclude(e=> e.SalaryHistories)
             .FirstOrDefaultAsync(vb => vb.Id == vacationBalanceId);
         return vacationBalance;
     }
@@ -62,6 +69,9 @@ public class VacationBalanceRepository : IVacationBalanceRepository
     {
         var toUpdate = await _context.VacationBalances
             .Include(vb=> vb.Employee)
+            .ThenInclude(e=> e.Department)
+            .Include(vb=> vb.Employee)
+            .ThenInclude(e=> e.SalaryHistories)
             .FirstOrDefaultAsync(vb => vb.Id == dto.Id);
         
         
@@ -75,6 +85,13 @@ public class VacationBalanceRepository : IVacationBalanceRepository
 
         return toUpdate;
     }
-    
+
+    public async Task<bool> ExistsAsync(int employeeId, int year)
+    {
+        return await _context.VacationBalances
+            .AnyAsync(v => v.EmployeeId == employeeId && v.Year == year);
+
+    }
+
     //TODO: Check later if we need delete method for VacationBalance
 }

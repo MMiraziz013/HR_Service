@@ -112,6 +112,16 @@ public class EmployeeRepository : IEmployeeRepository
         return employee;
     }
 
+    public async Task<Employee?> GetEmployeeByUserId(int userId)
+    {
+        var employee = await _context.Employees
+            .Include(e => e.Department)
+            .Include(e=> e.SalaryHistories)
+            .Include(e=> e.VacationBalances)
+            .FirstOrDefaultAsync(e => e.UserId == userId);
+        return employee;
+    }
+
     public async Task<Employee?> UpdateEmployeeAsync(Employee employee)
     {
         var existing = await _context.Employees

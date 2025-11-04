@@ -16,7 +16,5 @@ public class GetVacationBalanceDto
     public string PeriodEnd { get; set; }
     public int EmployeeId { get; set; }
 
-    // public GetEmployeeDto EmployeeDto { get; set; }
-    
-    //TODO: Check the the dto properties, if they are correct
+    public GetEmployeeDto Employee { get; set; } = null!;
 }

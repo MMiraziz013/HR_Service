@@ -7,6 +7,7 @@ using Clean.Application.Services.SalaryAnomaly;
 using Clean.Application.Services.SalaryHistory;
 using Clean.Application.Services.User;
 using Clean.Application.Services.VacationBalance;
+using Clean.Application.Services.VacationRecord;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,6 +23,7 @@ public static class ApplicationInjection
         services.AddTransient<IEmployeeService, EmployeeService>();
         services.AddTransient<IDepartmentService, DepartmentService>();
         services.AddTransient<IVacationBalanceService, VacationBalanceService>();
+        services.AddTransient<IVacationRecordService, VacationRecordService>();
         services.AddTransient<IJwtTokenService, JwtTokenService>();
         services.AddTransient<ISalaryHistoryService, SalaryHistoryService>();
         services.AddTransient<IPayrollRecordService, PayrollRecordService>();

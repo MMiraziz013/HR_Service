@@ -18,7 +18,7 @@ using Serilog.Formatting.Json;
 
 namespace HR_Service;
 
-public class Program
+public static class Program
 {
     [Obsolete("Obsolete")]
     public static async Task Main(string[] args)

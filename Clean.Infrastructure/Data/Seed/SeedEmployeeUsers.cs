@@ -37,10 +37,9 @@ public class SeedEmployeeUsers : IDataSeeder
             ("junior2@company.com", "junior2", "Emma", "Wilson")
         };
 
-        // Get the first available department
         var department = await _context.Departments.FirstOrDefaultAsync();
         if (department == null)
-            return; // No department to assign employees to — skip
+            return;
 
         foreach (var (email, username, firstName, lastName) in employeesToSeed)
         {
@@ -77,15 +76,25 @@ public class SeedEmployeeUsers : IDataSeeder
 
                 _context.Employees.Add(employee);
                 await _context.SaveChangesAsync();
+
+                user.EmployeeId = employee.Id;
+                _context.Users.Update(user);
+                await _context.SaveChangesAsync();
             }
             else
             {
-                employee = (await _context.Employees.FirstOrDefaultAsync(e => e.UserId == user.Id))!;
-                if (employee == null)
-                    continue;
+                employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == user.Id)
+                           ?? throw new InvalidOperationException("Employee not found for existing user.");
+
+                if (user.EmployeeId != employee.Id)
+                {
+                    user.EmployeeId = employee.Id;
+                    _context.Users.Update(user);
+                    await _context.SaveChangesAsync();
+                }
             }
 
-            // Always ensure salary exists for current month
+            // --- Ensure salary exists ---
             var currentMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
             var hasSalary = await _context.SalaryHistories
                 .AnyAsync(s => s.EmployeeId == employee.Id && s.Month == currentMonth);
@@ -103,7 +112,8 @@ public class SeedEmployeeUsers : IDataSeeder
                 _context.SalaryHistories.Add(salary);
                 await _context.SaveChangesAsync();
             }
-            
+
+            // --- Ensure vacation balance exists ---
             var hireDate = employee.HireDate;
             var nextYearEnd = hireDate.AddYears(1).AddDays(-1);
 
@@ -115,7 +125,7 @@ public class SeedEmployeeUsers : IDataSeeder
                 var vacationBalance = new VacationBalance
                 {
                     EmployeeId = employee.Id,
-                    TotalDaysPerYear = 24,   // standard for regular employees
+                    TotalDaysPerYear = 24,
                     UsedDays = 0,
                     ByExperienceBonusDays = 0,
                     Year = hireDate.Year,
@@ -126,10 +136,6 @@ public class SeedEmployeeUsers : IDataSeeder
                 _context.VacationBalances.Add(vacationBalance);
                 await _context.SaveChangesAsync();
             }
-
-
-            await _context.SaveChangesAsync();
         }
-
     }
 }

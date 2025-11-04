@@ -6,9 +6,9 @@ namespace Clean.Application.Abstractions;
 
 public interface IVacationBalanceService
 {
-    //TODO: Implement VacationBalance!
-
     Task AutoUpdateVacationBalancesAsync();
+
+    Task AutoUpdateVacationStatusesAsync();
     
     Task<Response<GetVacationBalanceDto>> AddVacationBalanceAsync(AddVacationBalanceDto dto);
 
