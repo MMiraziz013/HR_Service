@@ -127,24 +127,66 @@ public class PayrollRecordRepository: IPayrollRecordRepository
     public async Task<decimal> GetTotalPaidForMonth(DateOnly month)
     {
         return await _context.PayrollRecords
-            .Where(s => s.PeriodStart.Month == month.Month && s.PeriodStart.Year == month.Year)
-            .SumAsync(s => s.NetPay);
+            .Where(p => p.PeriodStart.Month == month.Month && p.PeriodStart.Year == month.Year)
+            .SumAsync(p => p.GrossPay - p.Deductions); 
     }
 
-    public async Task<decimal> GetDepartmentAveragePayrollAsync(int departmentId)
+    public async Task<decimal> GetDepartmentExpectedAverageAsync(int departmentId)
     {
         var payrolls = await _context.PayrollRecords
             .Include(s => s.Employee)
             .Where(s => s.Employee.DepartmentId == departmentId)
             .ToListAsync();
-
-        if (!payrolls.Any())
-            return 0;
-
-        return payrolls
-            .GroupBy(s => s.EmployeeId)
-            .Select(s => s.OrderByDescending(s => s.PeriodStart).First().NetPay)
-            .Average();
+        
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
     }
-    
+
+
+    public async Task<decimal> GetPositionExpectedAverageAsync(int departmentId, string position)
+    {
+        var normalizedPosition = position.ToLower();
+
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId &&
+                        s.Employee.Position.ToString().ToLower() == normalizedPosition)
+            .ToListAsync();
+
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
+    }
+
+   public async Task<decimal> GetPositionActualAverageAsync(int departmentId, string position)
+    {
+        var normalizedPosition = position.ToLower();
+
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId &&
+                        s.Employee.Position.ToString().ToLower() == normalizedPosition)
+            .ToListAsync();
+
+        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
+    }
+
+    public async Task<decimal> GetDepartmentActualAverageAsync(int departmentId)
+    {
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId)
+            .ToListAsync();
+        
+        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
+    }
+
+    public async Task<List<PayrollRecord>> GetPayrollRecordsAsync(DateTime startMonth, DateTime endMonth)
+    {
+        var startDate = new DateTime(startMonth.Year, startMonth.Month, 1);
+        var endDate = new DateTime(endMonth.Year, endMonth.Month, 1).AddMonths(1).AddDays(-1);
+
+        return await _context.PayrollRecords
+            .Where(r => r.CreatedAt.Date >= startDate.Date && r.CreatedAt.Date <= endDate.Date)
+            .ToListAsync();
+
+    }
+
 }

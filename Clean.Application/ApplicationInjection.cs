@@ -30,6 +30,7 @@ public static class ApplicationInjection
         services.AddTransient<ISalaryAnomalyService, SalaryAnomalyService>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<JwtTokenService>(configuration.GetSection(JwtOptions.SectionName));
+
    
         return services;
     }

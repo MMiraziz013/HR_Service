@@ -1,5 +1,6 @@
 using System.Net;
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.PayrollRecord;
 using Clean.Application.Dtos.Responses;
 using Clean.Application.Dtos.SalaryAnomaly;
 
@@ -36,8 +37,8 @@ public class SalaryAnomalyService : ISalaryAnomalyService
             var actual = payroll.NetPay;
             var deviationPercent =
                 (float)(((actual - expected) / expected) * 100m);
-
-            if (Math.Abs(deviationPercent) > deviationThreshold)
+            // decimal roundedDeviation = Math.Round(deviationPercent, 0);
+            if (Math.Abs(deviationPercent) > deviationThreshold) 
             {
                 var exists = await _repository.ExistsForEmployeeAndMonthAsync(payroll.EmployeeId, payroll.PeriodEnd);
                 if (exists) continue;
@@ -270,5 +271,50 @@ public class SalaryAnomalyService : ISalaryAnomalyService
             "Records retrieved successfully",
             mapped
             );
+    }
+ //for graphs 
+    public async Task<PaginatedResponse<SalaryAnomalyListDto>> GetSalaryAnomaliesForListAsync()
+    {
+        var anomalies = await _repository.GetAllAsync();
+        if (!anomalies.Any())
+        {
+            return new PaginatedResponse<SalaryAnomalyListDto>(
+                new List<SalaryAnomalyListDto>(),
+                1,
+                1,
+                0
+            )
+            {
+                StatusCode = (int)HttpStatusCode.NotFound,
+                Message = "No salary anomalies are found"
+            };
+        }
+        
+        var mapped = anomalies.Select(h => new SalaryAnomalyListDto
+        {
+          FullName =$"{h.Employee.FirstName} {h.Employee.LastName}",
+          Month = h.Month,
+          Deviation = h.DeviationPercent,
+          IsViewed = h.IsReviewed
+        }).ToList();
+        
+        const int pageSize = 5; 
+        const int pageNumber = 1;
+        var totalRecords = mapped.Count;
+        
+        var pagedData = mapped
+            .Take(pageSize)
+            .ToList();
+        
+        return new PaginatedResponse<SalaryAnomalyListDto>(
+            pagedData,
+            pageNumber,
+            pageSize,
+            totalRecords
+        )
+        {
+            StatusCode = (int)HttpStatusCode.OK,
+            Message = "Salary anomalies retrieved successfully."
+        };
     }
 }

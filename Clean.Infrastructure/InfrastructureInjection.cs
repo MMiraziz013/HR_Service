@@ -54,7 +54,10 @@ public static class InfrastructureInjection
         
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
-        services.AddTransient<ISalaryAnomalyRepository, SalaryAnomalyRepository>();
+      
+        
+        services.AddHttpClient<IEmailService, PostmarkEmailService>();
+        
         return services;
     }
 

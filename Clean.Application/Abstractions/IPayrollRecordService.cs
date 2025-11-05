@@ -20,4 +20,7 @@ public interface IPayrollRecordService
     
     Task<Response<bool>> DeletePayrollRecordAsync(int id);
     Task<Response<List<MonthPayrollDto>>> GetPayrollForLastSixMonthAsync();
+    Task<Response<(Dictionary<string, decimal> GrossPayByMonth, Dictionary<string, decimal> NetPayByMonth)>>
+        GetPayrollSummaryAsync(DateTime startMonth, DateTime endMonth);
+
 }

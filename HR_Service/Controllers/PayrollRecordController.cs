@@ -74,7 +74,14 @@ public class PayrollRecordController : Controller
         return StatusCode(result.StatusCode, result);
     }
 
-
+    [HttpGet("get-graph")]
+    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    public async Task<IActionResult> GetExpextedAndActualAsync([FromQuery]DateTime startMonth,DateTime endMonth)
+    {
+        var response = await _payrollRecordService.GetPayrollSummaryAsync(startMonth, endMonth);
+        return StatusCode(response.StatusCode, response);
+    }
+    
     [HttpDelete("delete")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
     public async Task<IActionResult> Delete([FromQuery] int id)

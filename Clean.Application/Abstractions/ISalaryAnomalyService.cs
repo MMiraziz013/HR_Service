@@ -1,3 +1,4 @@
+using Clean.Application.Dtos.PayrollRecord;
 using Clean.Application.Dtos.Responses;
 using Clean.Application.Dtos.SalaryAnomaly;
 
@@ -13,4 +14,5 @@ public interface ISalaryAnomalyService
     Task<Response<bool>> DeleteAsync(int id);
     Task<Response<GetSalaryAnomalyDto>> AddReviewCommentAsync(int employeeId, string reviewComment);
     Task<Response<List<GetSalaryAnomalyDto>>> GetAnomalyByEmployeeId(int id);
+    Task<PaginatedResponse<SalaryAnomalyListDto>> GetSalaryAnomaliesForListAsync();
 }
