@@ -170,6 +170,7 @@ private readonly ILogger<SalaryHistoryService> _logger;
             };
         }
 
+        // TODO: Base Amount and Bonus Amount are not mapped
         var mapped = salaries.Select(h => new GetSalaryHistoryDto
         {
             Id = h.Id,

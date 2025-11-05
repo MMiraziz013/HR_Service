@@ -136,37 +136,50 @@ public static class Program
                 // Optional: use JSON serialization for job data
                 options.UseJsonSerializer();
             });
+            
+            //TODO: Return the original time configuration for triggers once testing is done, and update the server.
+            
+            // Define the target time (22:00 UTC) which is 03:00 AM GMT+5
+            const int targetHourUtc = 00; // 10 PM UTC
+            const int targetMinute = 10;
 
-            // ✅ Register job
             var jobKey = new JobKey("VacationBalanceJob");
             q.AddJob<VacationBalanceJob>(opts => opts.WithIdentity(jobKey));
 
-            // ✅ Trigger: run daily at 2:00 UTC
+            // ✅ Vacation Balance Job: Runs at 22:00 UTC (03:00 AM GMT+5)
             q.AddTrigger(opts => opts
-                .ForJob(jobKey)
-                .WithIdentity("VacationBalanceTrigger")
-                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 0))
+                    .ForJob(jobKey)
+                    .WithIdentity("VacationBalanceTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock
             );
-            
+
+            // ---
+
             var salaryJobKey = new JobKey("SalaryHistoryJob");
             q.AddJob<SalaryHistoryJob>(opts => opts.WithIdentity(salaryJobKey));
 
+            // ✅ Salary History Job: Runs at 22:00 UTC (03:00 AM GMT+5) for testing
             q.AddTrigger(opts => opts
-                .ForJob(salaryJobKey)
-                .WithIdentity("SalaryHistoryTrigger")
-                .WithSchedule(CronScheduleBuilder.MonthlyOnDayAndHourAndMinute(1, 2, 0))
+                    .ForJob(salaryJobKey)
+                    .WithIdentity("SalaryHistoryTrigger")
+                    // Temporary change from monthly to daily for immediate confirmation
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock
             );
-           
+
+            // ---
+
             var anomalyJobKey = new JobKey("SalaryAnomalyJob");
             q.AddJob<SalaryAnomalyJob>(opts => opts.WithIdentity(anomalyJobKey));
 
+            // ✅ Salary Anomaly Job: Runs at 22:00 UTC (03:00 AM GMT+5)
             q.AddTrigger(opts => opts
                     .ForJob(anomalyJobKey)
                     .WithIdentity("SalaryAnomalyTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(2, 0)) 
-                                 
-
-                );
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
+            );
         });
         
         
@@ -184,7 +197,7 @@ public static class Program
         using (var scope = app.Services.CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<IDataContext>();
-            // await db.MigrateAsync();
+            await db.MigrateAsync();
 
             var services = scope.ServiceProvider;
 

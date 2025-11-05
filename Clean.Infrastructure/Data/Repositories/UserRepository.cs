@@ -28,6 +28,16 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Id == userId);
     }
 
+    public async Task<User?> GetByEmployeeIdAsync(int employeeId)
+    {
+        return await _userManager.Users
+            .Include(u => u.Employee)
+            .ThenInclude(e => e!.Department)
+            .Include(u=> u.Employee)
+            .ThenInclude(e=> e!.SalaryHistories)
+            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
+    }
+
     // 🔍 Now supports optional search
         public async Task<List<User>> GetUsersAsync(string? search = null)
         {

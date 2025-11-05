@@ -3,6 +3,7 @@ using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.VacationRecords;
 using Clean.Application.Security.Permission;
+using Clean.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HR_Service.Controllers;
@@ -81,5 +82,23 @@ public class VacationRecordController : Controller
     {
         var response = await _vacationRecordService.DeleteVacationRecordAsync(id);
         return StatusCode(response.StatusCode, response);    
+    }
+
+    [HttpPut("approve")]
+    [PermissionAuthorize(PermissionConstants.VacationRecords.Manage)]
+    public async Task<IActionResult> ApproveAsync(VacationRecordHrResponseDto dto)
+    {
+        dto.UpdatedStatus = VacationStatus.Approved;
+        var response = await _vacationRecordService.HrRespondToVacationRequest(dto);
+        return StatusCode(response.StatusCode, response);
+    }
+    
+    [HttpPut("reject")]
+    [PermissionAuthorize(PermissionConstants.VacationRecords.Manage)]
+    public async Task<IActionResult> RejectAsync(VacationRecordHrResponseDto dto)
+    {
+        dto.UpdatedStatus = VacationStatus.Rejected;
+        var response = await _vacationRecordService.HrRespondToVacationRequest(dto);
+        return StatusCode(response.StatusCode, response);
     }
 }
