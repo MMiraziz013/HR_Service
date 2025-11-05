@@ -21,5 +21,5 @@ public interface IVacationRecordService
 
     Task<Response<bool>> DeleteVacationRecordAsync(int id);
 
-    Task<Response<bool>> HrCheckVacationRequestAsync(VacationRecordHrResponseDto dto);
+    Task<Response<bool>> HrRespondToVacationRequest(VacationRecordHrResponseDto dto);
 }

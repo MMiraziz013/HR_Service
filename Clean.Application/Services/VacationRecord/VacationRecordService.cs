@@ -238,8 +238,48 @@ public class VacationRecordService : IVacationRecordService
         return new Response<bool>(HttpStatusCode.OK, isDeleted);
     }
 
-    public Task<Response<bool>> HrCheckVacationRequestAsync(VacationRecordHrResponseDto dto)
+    public async Task<Response<bool>> HrRespondToVacationRequest(VacationRecordHrResponseDto dto)
     {
-        throw new NotImplementedException();
+        var vacationRequest = await _vacationRecordRepository.GetByIdAsync(dto.Id);
+        if (vacationRequest is null)
+        {
+            return new Response<bool>(HttpStatusCode.NotFound, "No such vacation request to accept", false);
+        }
+
+        if (dto.UpdatedStatus is null)
+        {
+            return new Response<bool>(HttpStatusCode.BadRequest, "UpdatedStatus is required.", false);
+        }
+
+
+        if (string.IsNullOrEmpty(dto.Comment) == false)
+        {
+            vacationRequest.ManagerComment = dto.Comment;
+        }
+
+        switch (vacationRequest.Status)
+        {
+            case VacationStatus.Pending:
+                if (dto.UpdatedStatus == VacationStatus.Approved)
+                {
+                    vacationRequest.Status = VacationStatus.Approved;
+                    await _vacationRecordRepository.UpdateAsync(vacationRequest);
+                    return new Response<bool>(HttpStatusCode.OK, "Vacation request approved successfully.", true);
+                }
+                
+                vacationRequest.Status = VacationStatus.Rejected;
+                await _vacationRecordRepository.UpdateAsync(vacationRequest);
+                return new Response<bool>(HttpStatusCode.OK, "Vacation request rejected successfully.", true);
+
+            case VacationStatus.Rejected:
+                return new Response<bool>(HttpStatusCode.BadRequest, "This vacation was already rejected!", false);
+
+            case VacationStatus.Finished:
+                return new Response<bool>(HttpStatusCode.BadRequest, "This vacation already finished!", false);
+
+            case VacationStatus.Approved:
+            default:
+                return new Response<bool>(HttpStatusCode.BadRequest, "This vacation already approved!", false);
+        }
     }
 }

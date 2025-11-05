@@ -132,12 +132,10 @@ public class VacationRecordRepository : IVacationRecordRepository
             .ThenInclude(e => e.Department)
             .Include(vr => vr.Employee)
             .ThenInclude(e => e.SalaryHistories)
-            .FirstOrDefaultAsync();
+            .FirstOrDefaultAsync(vr => vr.Id == recordToUpdate.Id);
 
         if (existing == null)
-        {
             return null;
-        }
 
         _context.Entry(existing).CurrentValues.SetValues(recordToUpdate);
         await _context.SaveChangesAsync();
