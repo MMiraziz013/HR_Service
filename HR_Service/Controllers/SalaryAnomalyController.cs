@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/salary_anomaly")]
 public class SalaryAnomalyController : Controller
 {
    private readonly ISalaryAnomalyService _salaryAnomaly;

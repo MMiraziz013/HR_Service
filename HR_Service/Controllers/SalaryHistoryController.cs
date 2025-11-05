@@ -2,14 +2,13 @@ using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.SalaryHistory;
 using Clean.Application.Security.Permission;
-using Clean.Application.Services.SalaryHistory;
-using Clean.Domain.Entities;
+
 using Microsoft.AspNetCore.Mvc;
 
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/salary_history")]
 public class SalaryHistoryController : Controller
 {
   private readonly ISalaryHistoryService _salaryHistoryService;

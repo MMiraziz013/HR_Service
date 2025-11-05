@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR_Service.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/payroll_record")]
 public class PayrollRecordController : Controller
 {
     private readonly IPayrollRecordService _payrollRecordService;
