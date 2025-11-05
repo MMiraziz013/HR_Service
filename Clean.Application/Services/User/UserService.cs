@@ -254,9 +254,9 @@ public class UserService : IUserService
         return new Response<string>(HttpStatusCode.BadRequest, isUpdated.Errors.Select(e=> e.Description).ToList());
     }
 
-    public async Task<Response<UserProfileDto>> UpdateMyProfileAsync(UpdateUserProfileDto update, int userId)
+    public async Task<Response<UserProfileDto>> UpdateProfileAsync(UpdateUserProfileDto update)
     {
-        var userToUpdate = await _userRepository.GetByIdAsync(userId);
+        var userToUpdate = await _userRepository.GetByEmployeeIdAsync(update.EmployeeId);
 
         if (userToUpdate is null)
         {
@@ -298,7 +298,7 @@ public class UserService : IUserService
 
         if (isUpdated)
         {
-            var updatedUser = await GetUserProfileAsync(userId);
+            var updatedUser = await GetUserProfileAsync(userToUpdate.Id);
             return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile updated successfully!", updatedUser.Data);
         }
 
