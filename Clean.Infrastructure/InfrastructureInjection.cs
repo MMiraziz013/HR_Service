@@ -2,9 +2,11 @@
 using Clean.Infrastructure.Data;
 using Clean.Infrastructure.Data.Repositories;
 using Clean.Infrastructure.Data.Seed;
+using Clean.Infrastructure.Data.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace Clean.Infrastructure;
 
@@ -40,6 +42,16 @@ public static class InfrastructureInjection
         services.AddTransient<IDepartmentRepository, DepartmentRepository>();
         services.AddTransient<IVacationBalanceRepository, VacationBalanceRepository>();
         services.AddTransient<IVacationRecordRepository, VacationRecordRepository>();
+        
+        // Redis Registration
+        services.AddTransient<ICacheService, RedisCacheService>();
+        services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var connectionStringRedis = configuration["Redis:ConnectionString"];
+            return ConnectionMultiplexer.Connect($"{connectionStringRedis},abortConnect=false");
+        });
+
+        
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
         services.AddTransient<ISalaryAnomalyRepository, SalaryAnomalyRepository>();

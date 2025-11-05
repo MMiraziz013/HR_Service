@@ -9,22 +9,48 @@ namespace Clean.Application.Services.Employee;
 public class EmployeeService : IEmployeeService
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly ICacheService _redisCache;
 
-    public EmployeeService(IEmployeeRepository employeeRepository)
+    public EmployeeService(IEmployeeRepository employeeRepository, ICacheService redisCache)
     {
         _employeeRepository = employeeRepository;
+        _redisCache = redisCache;
     }
 
     public async Task<PaginatedResponse<GetEmployeeDto>> GetEmployeesAsync(EmployeePaginationFilter filter)
     {
+        var cacheKey = GetEmployeesCacheKey(filter);
+
+        // Try to get from cache
+        var cached = await _redisCache.GetAsync<PaginatedResponse<GetEmployeeDto>>(cacheKey);
+        if (cached != null)
+        {
+            return cached;
+        }
+
         var (employees, totalRecords) = await _employeeRepository.GetActiveEmployeesPaginatedAsync(filter);
-        return new PaginatedResponse<GetEmployeeDto>(employees, filter.PageNumber, filter.PageSize, totalRecords);
+        var response = new PaginatedResponse<GetEmployeeDto>(employees, filter.PageNumber, filter.PageSize, totalRecords);
+
+        // Cache the response
+        await _redisCache.SetAsync(cacheKey, response, TimeSpan.FromMinutes(15));
+
+        return response;
     }
+
+
 
     public async Task<Response<GetEmployeeDto?>> GetEmployeeByIdAsync(int id)
     {
-        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
+        var cacheKey = $"employee_{id}";
 
+        // Try to get from cache first
+        var cachedEmployee = await _redisCache.GetAsync<GetEmployeeDto>(cacheKey);
+        if (cachedEmployee != null)
+        {
+            return new Response<GetEmployeeDto?>(HttpStatusCode.OK, cachedEmployee);
+        }
+
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);
         if (employee == null)
         {
             return new Response<GetEmployeeDto?>(HttpStatusCode.NotFound, "Employee not found");
@@ -45,8 +71,12 @@ public class EmployeeService : IEmployeeService
             IsActive = employee.IsActive
         };
 
+        // Store in cache
+        await _redisCache.SetAsync(cacheKey, employeeDto, TimeSpan.FromMinutes(15));
+
         return new Response<GetEmployeeDto?>(HttpStatusCode.OK, employeeDto);
     }
+
 
     public async Task<Response<GetEmployeeDto?>> GetEmployeeByUserId(int userId)
     {
@@ -136,6 +166,18 @@ public class EmployeeService : IEmployeeService
             Position = updated.Position,
             IsActive = updated.IsActive
         };
+        
+        // On update or deactivate
+        await _redisCache.RemoveByPatternAsync("employees_*"); 
+        await _redisCache.RemoveAsync($"employee_{employee.Id}");
+        
+        // 2. Department-related cache cleanup (NEW LOGIC)
+        // Invalidates the specific department's nested employee list
+        await _redisCache.RemoveAsync($"department_with_employees_{employee.DepartmentId}");
+    
+        // Invalidate the list/search views for all departments
+        await _redisCache.RemoveByPatternAsync("departments_with_employees_*");
+
 
         return new Response<GetEmployeeDto>(HttpStatusCode.OK, "Employee updated successfully", result);
     }
@@ -161,7 +203,34 @@ public class EmployeeService : IEmployeeService
         {
             return new Response<bool>(HttpStatusCode.InternalServerError, "Failed to deactivate employee");
         }
+        
+        // On update or deactivate
+        await _redisCache.RemoveByPatternAsync("employees_*"); 
+        await _redisCache.RemoveAsync($"employee_{employee.Id}");
+        
+        // 2. Department-related cache cleanup (NEW LOGIC)
+        // Invalidates the specific department's nested employee list
+        await _redisCache.RemoveAsync($"department_with_employees_{employee.DepartmentId}");
+    
+        // Invalidate the list/search views for all departments
+        await _redisCache.RemoveByPatternAsync("departments_with_employees_*");
+
 
         return new Response<bool>(HttpStatusCode.OK, "Employee deactivated successfully", true);
     }
+    
+    
+    private string GetEmployeesCacheKey(EmployeePaginationFilter filter)
+    {
+        // Concatenate all filter values into a single string
+        return $"employees_" +
+               $"page:{filter.PageNumber}_size:{filter.PageSize}_" +
+               $"email:{filter.Email ?? "null"}_" +
+               $"first:{filter.FirstName ?? "null"}_" +
+               $"last:{filter.LastName ?? "null"}_" +
+               $"position:{filter.Position?.ToString() ?? "null"}_" +
+               $"dept:{filter.DepartmentName ?? "null"}_" +
+               $"active:{filter.IsActive?.ToString() ?? "null"}";
+    }
+
 }

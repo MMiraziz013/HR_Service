@@ -19,6 +19,7 @@ public class UserService : IUserService
     private readonly UserManager<Domain.Entities.User> _userManager;
     private readonly IJwtTokenService _tokenService;
     private readonly IConfiguration _configuration;
+    private readonly ICacheService _cacheService;
     private readonly IDataContext _context;
 
     public UserService(
@@ -29,6 +30,7 @@ public class UserService : IUserService
         UserManager<Domain.Entities.User> userManager,
         IJwtTokenService tokenService,
         IConfiguration configuration,
+        ICacheService cacheService,
         IDataContext context)
     {
         _userRepository = userRepository;
@@ -38,6 +40,7 @@ public class UserService : IUserService
         _userManager = userManager;
         _tokenService = tokenService;
         _configuration = configuration;
+        _cacheService = cacheService;
         _context = context;
     }
 
@@ -131,6 +134,21 @@ public class UserService : IUserService
             }
             
             await transaction.CommitAsync();
+            // Remove cached "all users" list
+            await _cacheService.RemoveAsync("all_users_all");
+            
+            await _cacheService.RemoveByPatternAsync("employees_*");
+            
+            // 2. Department-related cache cleanup (NEW LOGIC)
+            // Invalidates the specific department's nested employee list
+            await _cacheService.RemoveAsync($"department_with_employees_{employee.DepartmentId}");
+            
+            // 3. Department Summary cleanup (SUGGESTED ADDITION)
+            await _cacheService.RemoveByPatternAsync("departments_summary_*");
+    
+            // Invalidate the list/search views for all departments
+            await _cacheService.RemoveByPatternAsync("departments_with_employees_*");
+            await _cacheService.RemoveAsync($"user_profile_{user.Id}"); // Invalidate single user profile cache
 
             return new Response<string>(
                 HttpStatusCode.OK,
@@ -170,6 +188,13 @@ public class UserService : IUserService
 
     public async Task<Response<UserProfileDto>> GetUserProfileAsync(int userId)
     {
+        var cacheKey = $"user_profile_{userId}";
+        var cached = await _cacheService.GetAsync<UserProfileDto>(cacheKey);
+        if (cached != null)
+        {
+            return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile Retrieved!", cached);
+        }
+
         var employee = await _userRepository.GetByIdAsync(userId);
         if (employee is null)
         {
@@ -204,11 +229,22 @@ public class UserService : IUserService
             }
         };
 
+        // Save to Redis cache for 10 minutes
+        await _cacheService.SetAsync(cacheKey, profileDto, TimeSpan.FromMinutes(10));
+
         return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile Retrieved!", profileDto);
     }
 
+    //TODO: Apply Redis Caching for all users too
     public async Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync(string? search = null)
     {
+        var cacheKey = $"all_users_{search ?? "all"}";
+
+        // Try to get from Redis first
+        var cached = await _cacheService.GetAsync<List<UserProfileDto>>(cacheKey);
+        if (cached != null)
+            return new Response<List<UserProfileDto>>(HttpStatusCode.OK, "Users retrieved successfully!", cached);
+
         var users = await _userRepository.GetUsersAsync(search);
 
         if (users.Count == 0)
@@ -238,6 +274,8 @@ public class UserService : IUserService
                 HireDate = u.Employee.HireDate.ToString("yyyy-MM-dd")
             }
         }).ToList();
+
+        await _cacheService.SetAsync(cacheKey, userProfiles, TimeSpan.FromMinutes(10));
 
         return new Response<List<UserProfileDto>>(HttpStatusCode.OK, "Users retrieved successfully!", userProfiles);
     }
@@ -298,8 +336,34 @@ public class UserService : IUserService
 
         if (isUpdated)
         {
-            var updatedUser = await GetUserProfileAsync(userToUpdate.Id);
-            return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile updated successfully!", updatedUser.Data);
+            // Remove cached profile
+            await _cacheService.RemoveAsync($"user_profile_{userToUpdate.Id}");
+            // Remove cached "all users" list
+            await _cacheService.RemoveAsync("all_users_all");
+            
+            var updatedUser = new UserProfileDto 
+            {
+                Username = userToUpdate.UserName,
+                Email = userToUpdate.Email,
+                PhoneNumber = userToUpdate.PhoneNumber,
+                RegistrationDate = userToUpdate.RegistrationDate.ToString("yyyy-MM-dd"),
+                Role = userToUpdate.Role,
+                EmployeeInfo = new GetEmployeeDto
+                {
+                    Id = userToUpdate.Employee!.Id,
+                    FirstName = userToUpdate.Employee.FirstName,
+                    LastName = userToUpdate.Employee.LastName,
+                    BaseSalary = userToUpdate.Employee.SalaryHistories
+                        .OrderByDescending(sh => sh.Month)
+                        .Select(sh => sh.BaseAmount)
+                        .FirstOrDefault(),
+                    DepartmentName = userToUpdate.Employee.Department.Name,
+                    IsActive = userToUpdate.Employee.IsActive,
+                    Position = userToUpdate.Employee.Position,
+                    HireDate = userToUpdate.Employee.HireDate.ToString("yyyy-MM-dd")
+                }
+            };
+            return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile updated successfully!", updatedUser);
         }
 
         return new Response<UserProfileDto>(HttpStatusCode.BadRequest, "Couldn't update the profile");
