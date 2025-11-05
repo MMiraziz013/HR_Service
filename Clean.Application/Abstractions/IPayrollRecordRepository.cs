@@ -1,3 +1,4 @@
+using Clean.Application.Dtos.Filters;
 using Clean.Domain.Entities;
 
 namespace Clean.Application.Abstractions;
@@ -11,4 +12,8 @@ public interface IPayrollRecordRepository
     Task<PayrollRecord?> GetLatestByEmployeeIdAsync(int employeeId);
     Task<bool> UpdateAsync(PayrollRecord payroll);
     Task<bool> DeleteAsync(int id);
+    Task<IEnumerable<PayrollRecord>> GetPayrollRecordsAsync(PayrollRecordFilter filter);
+    Task<List<PayrollRecord?>> GetLatestPayrollAsync();
+    Task<decimal> GetTotalPaidForMonth(DateOnly month);
+    Task<decimal> GetDepartmentAveragePayrollAsync(int departmentId);
 }
