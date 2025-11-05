@@ -9,12 +9,13 @@ namespace Clean.Application.Services.Department;
 public class DepartmentService : IDepartmentService
 {
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly ICacheService _redisCache;
 
-    public DepartmentService(IDepartmentRepository departmentRepository)
+    public DepartmentService(IDepartmentRepository departmentRepository, ICacheService redisCache)
     {
         _departmentRepository = departmentRepository;
+        _redisCache = redisCache;
     }
-
     public async Task<Response<GetDepartmentDto>> AddDepartmentAsync(AddDepartmentDto dto)
     {
         var department = new Domain.Entities.Department
@@ -28,6 +29,9 @@ public class DepartmentService : IDepartmentService
         {
             return new Response<GetDepartmentDto>(HttpStatusCode.BadRequest, message: "Error while adding the department (maybe it already exists).");
         }
+        
+        // Clear relevant caches
+        await _redisCache.RemoveByPatternAsync("departments_*");
 
         var addedDepartment = new GetDepartmentDto
         {
@@ -41,8 +45,15 @@ public class DepartmentService : IDepartmentService
 
     public async Task<Response<List<GetDepartmentDto>>> GetDepartmentsAsync(string? search = null)
     {
-        var departments = await _departmentRepository.GetDepartmentsAsync(search);
+        var cacheKey = $"departments_all_{search ?? "null"}";
 
+        var cached = await _redisCache.GetAsync<List<GetDepartmentDto>>(cacheKey);
+        if (cached != null)
+        {
+            return new Response<List<GetDepartmentDto>>(HttpStatusCode.OK, "Departments retrieved successfully (from cache)!", cached);
+        }
+
+        var departments = await _departmentRepository.GetDepartmentsAsync(search);
         if (departments.Count == 0)
         {
             return new Response<List<GetDepartmentDto>>(HttpStatusCode.NotFound, "No departments found.");
@@ -55,11 +66,22 @@ public class DepartmentService : IDepartmentService
             Description = d.Description
         }).ToList();
 
+        // Cache for 1 hour
+        await _redisCache.SetAsync(cacheKey, departmentDtos, TimeSpan.FromHours(1));
+
         return new Response<List<GetDepartmentDto>>(HttpStatusCode.OK, "Departments retrieved successfully!", departmentDtos);
     }
 
     public async Task<Response<List<GetDepartmentWithEmployeesDto>>> GetDepartmentsWithEmployeesAsync(string? search = null)
     {
+        var cacheKey = $"departments_with_employees_{search ?? "null"}";
+
+        var cached = await _redisCache.GetAsync<List<GetDepartmentWithEmployeesDto>>(cacheKey);
+        if (cached != null)
+        {
+            return new Response<List<GetDepartmentWithEmployeesDto>>(HttpStatusCode.OK, "Departments with employees retrieved successfully (from cache)!", cached);
+        }
+
         var departments = await _departmentRepository.GetDepartmentsAsync(search);
 
         if (departments.Count == 0)
@@ -87,12 +109,22 @@ public class DepartmentService : IDepartmentService
                 IsActive = e.IsActive
             }).ToList()
         }).ToList();
+        
+        await _redisCache.SetAsync(cacheKey, departmentDtos, TimeSpan.FromHours(1));
 
         return new Response<List<GetDepartmentWithEmployeesDto>>(HttpStatusCode.OK, "Departments with employees retrieved successfully!", departmentDtos);
     }
 
     public async Task<Response<List<GetDepartmentSummaryDto>>> GetDepartmentsSummaryAsync(string? search)
     {
+        var cacheKey = $"departments_summary_{search ?? "null"}";
+
+        var cached = await _redisCache.GetAsync<List<GetDepartmentSummaryDto>>(cacheKey);
+        if (cached != null)
+        {
+            return new Response<List<GetDepartmentSummaryDto>>(HttpStatusCode.OK, "Departments summary retrieved successfully (from cache)!", cached);
+        }
+
         var departments = await _departmentRepository.GetDepartmentsAsync(search);
         if (departments.Count == 0)
         {
@@ -107,12 +139,22 @@ public class DepartmentService : IDepartmentService
             EmployeeCount = d.Employees.Count
         }).ToList();
 
-
+        await _redisCache.SetAsync(cacheKey, departmentDtos, TimeSpan.FromHours(1));
+        
         return new Response<List<GetDepartmentSummaryDto>>(HttpStatusCode.OK, departmentDtos);
     }
 
     public async Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id)
     {
+        var cacheKey = $"department_{id}";
+
+        // Try to get from cache first
+        var cachedDepartment = await _redisCache.GetAsync<GetDepartmentDto>(cacheKey);
+        if (cachedDepartment != null)
+        {
+            return new Response<GetDepartmentDto?>(HttpStatusCode.OK, cachedDepartment);
+        }
+        
         var department = await _departmentRepository.GetDepartmentByIdAsync(id);
         if (department == null)
         {
@@ -125,12 +167,23 @@ public class DepartmentService : IDepartmentService
             Name = department.Name,
             Description = department.Description,
         };
+        
+        await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(1));
 
         return new Response<GetDepartmentDto?>(HttpStatusCode.OK, "Department retrieved successfully.", dto);
     }
     
     public async Task<Response<GetDepartmentWithEmployeesDto?>> GetDepartmentByIdWithEmployeesAsync(int id)
     {
+        var cacheKey = $"department_with_employees_{id}";
+
+        // Try to get from cache first
+        var cachedDepartment = await _redisCache.GetAsync<GetDepartmentWithEmployeesDto>(cacheKey);
+        if (cachedDepartment != null)
+        {
+            return new Response<GetDepartmentWithEmployeesDto?>(HttpStatusCode.OK, cachedDepartment);
+        }
+        
         var department = await _departmentRepository.GetDepartmentByIdAsync(id);
         if (department == null)
         {
@@ -157,6 +210,8 @@ public class DepartmentService : IDepartmentService
                 IsActive = e.IsActive
             }).ToList()
         };
+        
+        await _redisCache.SetAsync(cacheKey, dto, TimeSpan.FromHours(1));
 
         return new Response<GetDepartmentWithEmployeesDto?>(HttpStatusCode.OK, "Department retrieved successfully.", dto);
     }
@@ -184,6 +239,12 @@ public class DepartmentService : IDepartmentService
         {
             return new Response<GetDepartmentDto>(HttpStatusCode.InternalServerError, "Failed to update department.");
         }
+        
+        // Clear caches
+        await _redisCache.RemoveByPatternAsync("departments_*");
+        await _redisCache.RemoveByPatternAsync("departments_summary_*");
+        await _redisCache.RemoveAsync($"department_with_employees_{existing.Id}");
+        await _redisCache.RemoveAsync($"department_{existing.Id}");
 
         var updatedDto = new GetDepartmentDto
         {
@@ -202,6 +263,11 @@ public class DepartmentService : IDepartmentService
         {
             return new Response<bool>(HttpStatusCode.BadRequest, "Failed to delete department or department not found.");
         }
+        
+        // Clear caches
+        await _redisCache.RemoveByPatternAsync("departments_*");
+        await _redisCache.RemoveAsync($"department_with_employees_{id}");
+        await _redisCache.RemoveAsync($"department_{id}");
 
         return new Response<bool>(HttpStatusCode.OK, "Department deleted successfully!", true);
     }
