@@ -63,6 +63,7 @@ private readonly ILogger<SalaryHistoryService> _logger;
     public async Task<Response<GetSalaryHistoryDto>> AddSalaryHistoryAsync(AddSalaryHistoryDto dto)
     {
         var thisMonth = DateTime.UtcNow.Month;
+        var thisYear = DateTime.UtcNow.Year;
             var employee=await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
             if (employee == null)
             {
@@ -77,11 +78,12 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 BonusAmount = dto.BonusAmount,
                 Month = DateOnly.FromDateTime(DateTime.UtcNow)
             };
-            if (entity.Month.Month != thisMonth)
+            if (entity.Month.Year < thisYear ||
+                (entity.Month.Year == thisYear && entity.Month.Month <= thisMonth))
             {
                 return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.BadRequest,
-                    "You can only create salary for current month.");
+                    "Cannot add salary for the current or previous months. Only future months are allowed.");
             }
             var isAdded = await _repository.AddAsync(entity);
 

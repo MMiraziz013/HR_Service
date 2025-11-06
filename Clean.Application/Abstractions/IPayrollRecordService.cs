@@ -20,4 +20,5 @@ public interface IPayrollRecordService
     
     Task<Response<bool>> DeletePayrollRecordAsync(int id);
     Task<Response<List<MonthPayrollDto>>> GetPayrollForLastSixMonthAsync();
+    
 }

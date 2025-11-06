@@ -15,5 +15,10 @@ public interface IPayrollRecordRepository
     Task<IEnumerable<PayrollRecord>> GetPayrollRecordsAsync(PayrollRecordFilter filter);
     Task<List<PayrollRecord?>> GetLatestPayrollAsync();
     Task<decimal> GetTotalPaidForMonth(DateOnly month);
-    Task<decimal> GetDepartmentAveragePayrollAsync(int departmentId);
+    Task<decimal> GetPositionExpectedAverageAsync(int departmentId, string position);
+    Task<decimal> GetDepartmentExpectedAverageAsync(int departmentId);
+    
+    
+    Task<decimal> GetPositionActualAverageAsync(int departmentId, string position);
+    Task<decimal> GetDepartmentActualAverageAsync(int departmentId);
 }

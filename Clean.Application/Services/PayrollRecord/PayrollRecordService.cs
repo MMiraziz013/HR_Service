@@ -298,4 +298,6 @@ public class PayrollRecordService : IPayrollRecordService
         }
         return new Response<List<MonthPayrollDto>>(HttpStatusCode.OK, result);
     }
+    
+    
 }

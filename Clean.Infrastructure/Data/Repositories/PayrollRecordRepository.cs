@@ -131,20 +131,51 @@ public class PayrollRecordRepository: IPayrollRecordRepository
             .SumAsync(s => s.NetPay);
     }
 
-    public async Task<decimal> GetDepartmentAveragePayrollAsync(int departmentId)
+    public async Task<decimal> GetDepartmentExpectedAverageAsync(int departmentId)
     {
         var payrolls = await _context.PayrollRecords
             .Include(s => s.Employee)
             .Where(s => s.Employee.DepartmentId == departmentId)
             .ToListAsync();
+        
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
+    }
 
-        if (!payrolls.Any())
-            return 0;
 
-        return payrolls
-            .GroupBy(s => s.EmployeeId)
-            .Select(s => s.OrderByDescending(s => s.PeriodStart).First().NetPay)
-            .Average();
+    public async Task<decimal> GetPositionExpectedAverageAsync(int departmentId, string position)
+    {
+        var normalizedPosition = position.ToLower();
+
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId &&
+                        s.Employee.Position.ToString().ToLower() == normalizedPosition)
+            .ToListAsync();
+
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
+    }
+
+   public async Task<decimal> GetPositionActualAverageAsync(int departmentId, string position)
+    {
+        var normalizedPosition = position.ToLower();
+
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId &&
+                        s.Employee.Position.ToString().ToLower() == normalizedPosition)
+            .ToListAsync();
+
+        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
+    }
+
+    public async Task<decimal> GetDepartmentActualAverageAsync(int departmentId)
+    {
+        var payrolls = await _context.PayrollRecords
+            .Include(s => s.Employee)
+            .Where(s => s.Employee.DepartmentId == departmentId)
+            .ToListAsync();
+        
+        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
     }
     
 }
