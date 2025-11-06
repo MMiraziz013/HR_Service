@@ -298,6 +298,44 @@ public class PayrollRecordService : IPayrollRecordService
         }
         return new Response<List<MonthPayrollDto>>(HttpStatusCode.OK, result);
     }
+
+    public async Task<Response<(Dictionary<string, decimal> GrossPayByMonth, Dictionary<string, decimal> NetPayByMonth)>> 
+        GetPayrollSummaryAsync(DateTime startMonth, DateTime endMonth)
+    {
+        var payrollRecords = await _payrollRecordRepository.GetPayrollRecordsAsync(startMonth, endMonth);
+
+        
+        var grossPayByMonth = new Dictionary<string, decimal>();
+        var netPayByMonth = new Dictionary<string, decimal>();
+        
+        foreach (var record in payrollRecords)
+        {
+            string monthKey = record.CreatedAt.ToString("yyyy-MM");
+
+            if (!grossPayByMonth.ContainsKey(monthKey))
+            {
+                grossPayByMonth[monthKey] = 0;
+                netPayByMonth[monthKey] = 0;
+            }
+
+            grossPayByMonth[monthKey] += Math.Round(record.GrossPay, 0, MidpointRounding.AwayFromZero);
+            netPayByMonth[monthKey] += Math.Round(record.NetPay, 0, MidpointRounding.AwayFromZero);
+        }
+
+      
+        var orderedGross = grossPayByMonth.OrderBy(k => k.Key)
+            .ToDictionary(k => k.Key, v => v.Value);
+        var orderedNet = netPayByMonth.OrderBy(k => k.Key)
+            .ToDictionary(k => k.Key, v => v.Value);
+
+       
+        var data = (orderedGross, orderedNet);
+        return new Response<(Dictionary<string, decimal>, Dictionary<string, decimal>)>(
+            HttpStatusCode.OK, 
+            "Payroll summary retrieved successfully", 
+            data
+        );
+    }
     
     
 }

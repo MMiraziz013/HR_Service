@@ -2,6 +2,7 @@
 using Clean.Infrastructure.Data;
 using Clean.Infrastructure.Data.Repositories;
 using Clean.Infrastructure.Data.Seed;
+using Clean.Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +44,9 @@ public static class InfrastructureInjection
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
         services.AddTransient<ISalaryAnomalyRepository, SalaryAnomalyRepository>();
+        
+        services.AddHttpClient<IEmailService, PostmarkEmailService>();
+        
         return services;
     }
 

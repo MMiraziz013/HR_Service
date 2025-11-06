@@ -143,6 +143,8 @@ private readonly ILogger<SalaryHistoryService> _logger;
         {
             Id = h.Id,
             Month = h.Month,
+            Base = h.BaseAmount,
+            Bonus = h.BonusAmount,
             ExpectedTotal = h.ExpectedTotal,
             EmployeeName = h.Employee.FirstName,
             EmployeeId = h.EmployeeId
@@ -178,6 +180,8 @@ private readonly ILogger<SalaryHistoryService> _logger;
             Id = h.Id,
             EmployeeId = h.EmployeeId,
             Month = h.Month,
+            BaseAmount = h.BaseAmount,
+            BonusAmount = h.BonusAmount,
             ExpectedTotal = h.ExpectedTotal,
             EmployeeName = $"{h.Employee.FirstName} {h.Employee.LastName}"
 
@@ -220,6 +224,8 @@ private readonly ILogger<SalaryHistoryService> _logger;
         {
             Id = salary.Id,
             EmployeeId = salary.EmployeeId,
+            Base = salary.BaseAmount,
+            Bonus = salary.BonusAmount,
             ExpectedTotal = salary.ExpectedTotal,
             Month = salary.Month,
             EmployeeName = employee.FirstName
@@ -274,9 +280,11 @@ private readonly ILogger<SalaryHistoryService> _logger;
         var mapped = history.Select(h => new GetSalaryHistoryWithEmployeeDto
         {
             Id = h.Id,
-            ExpectedTotal = h.ExpectedTotal,
             EmployeeId = h.EmployeeId,
             EmployeeName = h.Employee.FirstName,
+            Base = h.BaseAmount,
+            Bonus = h.BonusAmount,
+            ExpectedTotal = h.ExpectedTotal,
             Month = h.Month
         }).ToList();
 

@@ -55,6 +55,14 @@ public class SalaryAnomalyController : Controller
       return StatusCode(response.StatusCode, response);
    }
 
+   [HttpGet("get-list")]
+   [PermissionAuthorize(PermissionConstants.SalaryAnomalies.Manage)]
+   public async Task<IActionResult> GetSalaryAnomaliesAsList()
+   {
+      var response = await _salaryAnomaly.GetSalaryAnomaliesForListAsync();
+      return StatusCode(response.StatusCode, response);
+   }
+
    [HttpDelete("delete")]
    [PermissionAuthorize(PermissionConstants.SalaryAnomalies.Manage)]
    public async Task<IActionResult> Delete([FromBody] int id)
