@@ -15,6 +15,7 @@ public class UserService : IUserService
     private readonly IUserRepository _userRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDepartmentRepository _departmentRepository;
+    private readonly IVacationBalanceRepository _vacationBalanceRepository;
     private readonly UserManager<Domain.Entities.User> _userManager;
     private readonly IJwtTokenService _tokenService;
     private readonly IConfiguration _configuration;
@@ -24,6 +25,7 @@ public class UserService : IUserService
         IUserRepository userRepository,
         IEmployeeRepository employeeRepository,
         IDepartmentRepository departmentRepository,
+        IVacationBalanceRepository vacationBalanceRepository,
         UserManager<Domain.Entities.User> userManager,
         IJwtTokenService tokenService,
         IConfiguration configuration,
@@ -32,6 +34,7 @@ public class UserService : IUserService
         _userRepository = userRepository;
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
+        _vacationBalanceRepository = vacationBalanceRepository;
         _userManager = userManager;
         _tokenService = tokenService;
         _configuration = configuration;
@@ -78,7 +81,7 @@ public class UserService : IUserService
                 return new Response<string>(HttpStatusCode.BadRequest, errors);
             }
 
-            // This adds a record in the AspNetUserRoles table, that joins user and their roles.
+            // This adds a record in the "users" table, that joins user and their roles.
             await _userManager.AddToRoleAsync(user, dto.UserRole.GetDisplayName());
             
             var employee = new Domain.Entities.Employee
@@ -99,6 +102,34 @@ public class UserService : IUserService
                 return new Response<string>(HttpStatusCode.InternalServerError, message: "Failed to create employee record.");
             }
 
+            var vacationBalance = new Domain.Entities.VacationBalance
+            {
+                TotalDaysPerYear = 24,
+                UsedDays = 0,
+                Year = DateTime.Today.Year,
+                ByExperienceBonusDays = 0,
+                PeriodStart = DateOnly.FromDateTime(DateTime.UtcNow),
+                PeriodEnd = DateOnly.FromDateTime(DateTime.UtcNow.AddYears(1).AddDays(-1)),
+                EmployeeId = employee.Id,
+            };
+
+            var balanceExists =
+                await _vacationBalanceRepository.ExistsAsync(vacationBalance.EmployeeId, vacationBalance.Year);
+            
+            if (balanceExists)
+            {
+                await transaction.RollbackAsync();
+                return new Response<string>(HttpStatusCode.InternalServerError, message: "This employee already has vacation balance.");
+
+            }
+            var isBalanceAdded = await _vacationBalanceRepository.AddVacationBalanceAsync(vacationBalance);
+
+            if (isBalanceAdded == false)
+            {
+                await transaction.RollbackAsync();
+                return new Response<string>(HttpStatusCode.InternalServerError, message: "Failed to create vacation balance for the employee.");
+            }
+            
             await transaction.CommitAsync();
 
             return new Response<string>(
@@ -223,9 +254,9 @@ public class UserService : IUserService
         return new Response<string>(HttpStatusCode.BadRequest, isUpdated.Errors.Select(e=> e.Description).ToList());
     }
 
-    public async Task<Response<UserProfileDto>> UpdateMyProfileAsync(UpdateUserProfileDto update, int userId)
+    public async Task<Response<UserProfileDto>> UpdateProfileAsync(UpdateUserProfileDto update)
     {
-        var userToUpdate = await _userRepository.GetByIdAsync(userId);
+        var userToUpdate = await _userRepository.GetByEmployeeIdAsync(update.EmployeeId);
 
         if (userToUpdate is null)
         {
@@ -267,7 +298,7 @@ public class UserService : IUserService
 
         if (isUpdated)
         {
-            var updatedUser = await GetUserProfileAsync(userId);
+            var updatedUser = await GetUserProfileAsync(userToUpdate.Id);
             return new Response<UserProfileDto>(HttpStatusCode.OK, "Profile updated successfully!", updatedUser.Data);
         }
 

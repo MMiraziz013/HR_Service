@@ -1,8 +1,10 @@
 using System.Net;
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Responses;
 using Clean.Application.Dtos.VacationBalance;
+using Clean.Domain.Enums;
 using Microsoft.Extensions.Logging;
 
 namespace Clean.Application.Services.VacationBalance;
@@ -11,15 +13,21 @@ public class VacationBalanceService : IVacationBalanceService
 {
     private readonly IVacationBalanceRepository _vacationBalanceRepository;
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IVacationRecordRepository _vacationRecordRepository;
+    private readonly IDataContext _context;
     private readonly ILogger<VacationBalanceService> _logger;
 
     public VacationBalanceService(
         IVacationBalanceRepository vacationBalanceRepository,
         IEmployeeRepository employeeRepository,
+        IVacationRecordRepository vacationRecordRepository,
+        IDataContext context,
         ILogger<VacationBalanceService> logger)
     {
         _vacationBalanceRepository = vacationBalanceRepository;
         _employeeRepository = employeeRepository;
+        _vacationRecordRepository = vacationRecordRepository;
+        _context = context;
         _logger = logger;
     }
     
@@ -65,9 +73,39 @@ public class VacationBalanceService : IVacationBalanceService
         }
     }
 
-    
+    /// <summary>
+    /// Automatically marks vacations that have ended as Finished.
+    /// </summary>
+    public async Task AutoUpdateVacationStatusesAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        var vacationsToFinish = await _vacationRecordRepository.GetVacationsToFinishAsync(today);
+
+        if (vacationsToFinish.Count == 0)
+        {
+            _logger.LogInformation("No vacation records to finish as of {date}.", today);
+            return;
+        }
+
+        foreach (var vacation in vacationsToFinish.Where(v=> v.Status != VacationStatus.Finished))
+        {
+            vacation.Status = VacationStatus.Finished;
+        }
+
+        await _context.SaveChangesAsync(CancellationToken.None);
+        _logger.LogInformation("Marked {count} vacation records as Finished.", vacationsToFinish.Count);
+    }
+
     public async Task<Response<GetVacationBalanceDto>> AddVacationBalanceAsync(AddVacationBalanceDto dto)
     {
+        var exists = await _vacationBalanceRepository.ExistsAsync(dto.EmployeeId, dto.Year);
+        if (exists)
+        {
+            return new Response<GetVacationBalanceDto>(HttpStatusCode.BadRequest,
+                "Vacation Balance for this employee already exists for this working year.");
+        }
+        
         var vBalance = new Domain.Entities.VacationBalance
         {
             TotalDaysPerYear = dto.TotalDaysPerYear,
@@ -86,6 +124,8 @@ public class VacationBalanceService : IVacationBalanceService
             return new Response<GetVacationBalanceDto>(HttpStatusCode.BadRequest,
                 "Couldn't add the vacation record, error...");
         }
+
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(vBalance.EmployeeId);
         
         return new Response<GetVacationBalanceDto>(HttpStatusCode.OK, new GetVacationBalanceDto
         {
@@ -97,6 +137,18 @@ public class VacationBalanceService : IVacationBalanceService
             PeriodStart = vBalance.PeriodStart.ToString("yyyy-MM-dd"),
             PeriodEnd = vBalance.PeriodEnd.ToString("yyyy-MM-dd"),
             EmployeeId = vBalance.EmployeeId,
+            Employee = new GetEmployeeDto
+            {
+                Id = employee!.Id,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Position = employee.Position,
+                HireDate = employee.HireDate.ToString("yyyy-MM-dd"),
+                BaseSalary = employee.SalaryHistories.OrderByDescending(sh => sh.Month).Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
+                IsActive = employee.IsActive,
+                DepartmentName = employee.Department.Name
+            }
         });
     }
 
@@ -113,6 +165,18 @@ public class VacationBalanceService : IVacationBalanceService
             PeriodStart = vb.PeriodStart.ToString("yyyy-MM-dd"),
             PeriodEnd = vb.PeriodEnd.ToString("yyyy-MM-dd"),
             EmployeeId = vb.EmployeeId,
+            Employee = new GetEmployeeDto
+            {
+                Id = vb.Employee!.Id,
+                FirstName = vb.Employee.FirstName,
+                LastName = vb.Employee.LastName,
+                Position = vb.Employee.Position,
+                HireDate = vb.Employee.HireDate.ToString("yyyy-MM-dd"),
+                BaseSalary = vb.Employee.SalaryHistories.OrderByDescending(sh => sh.Month).Select(sh => sh.BaseAmount)
+                    .FirstOrDefault(),
+                IsActive = vb.Employee.IsActive,
+                DepartmentName = vb.Employee.Department.Name
+            },
         }).ToList();
 
         return new Response<List<GetVacationBalanceDto>>(HttpStatusCode.OK, allBalances);
@@ -140,6 +204,17 @@ public class VacationBalanceService : IVacationBalanceService
                     PeriodStart = latest.PeriodStart.ToString("yyyy-MM-dd"),
                     PeriodEnd = latest.PeriodEnd.ToString("yyyy-MM-dd"),
                     EmployeeId = latest.EmployeeId,
+                    Employee = new GetEmployeeDto
+                    {
+                        Id = e.Id,
+                        FirstName = e.FirstName,
+                        LastName = e.LastName,
+                        Position = e.Position,
+                        HireDate = e.HireDate.ToString("yyyy-MM-dd"),
+                        BaseSalary = e.SalaryHistories.OrderByDescending(sh=> sh.Month).Select(sh=> sh.BaseAmount).FirstOrDefault(),
+                        IsActive = e.IsActive,
+                        DepartmentName = e.Department.Name
+                    }
                 };
             })
             .ToList();
@@ -166,6 +241,17 @@ public class VacationBalanceService : IVacationBalanceService
             PeriodStart = employeeBalance.PeriodStart.ToString("yyyy-MM-dd"),
             PeriodEnd = employeeBalance.PeriodEnd.ToString("yyyy-MM-dd"),
             EmployeeId = employeeBalance.EmployeeId,
+            Employee = new GetEmployeeDto
+            {
+                Id = employee.Id,
+                FirstName = employee.FirstName,
+                LastName = employee.LastName,
+                Position = employee.Position,
+                HireDate = employee.HireDate.ToString("yyyy-MM-dd"),
+                BaseSalary = employee.SalaryHistories.OrderByDescending(sh=> sh.Month).Select(sh=> sh.BaseAmount).FirstOrDefault(),
+                IsActive = employee.IsActive,
+                DepartmentName = employee.Department.Name
+            }
         };
 
         return new Response<GetVacationBalanceDto>(HttpStatusCode.OK, eBalance);
@@ -190,6 +276,17 @@ public class VacationBalanceService : IVacationBalanceService
             PeriodStart = vBalance.PeriodStart.ToString("yyyy-MM-dd"),
             PeriodEnd = vBalance.PeriodEnd.ToString("yyyy-MM-dd"),
             EmployeeId = vBalance.EmployeeId,
+            Employee = new GetEmployeeDto
+            {
+                Id = vBalance.Employee.Id,
+                FirstName = vBalance.Employee.FirstName,
+                LastName = vBalance.Employee.LastName,
+                Position = vBalance.Employee.Position,
+                HireDate = vBalance.Employee.HireDate.ToString("yyyy-MM-dd"),
+                BaseSalary = vBalance.Employee.SalaryHistories.OrderByDescending(sh=> sh.Month).Select(sh=> sh.BaseAmount).FirstOrDefault(),
+                IsActive = vBalance.Employee.IsActive,
+                DepartmentName = vBalance.Employee.Department.Name
+            }
         };
 
         return new Response<GetVacationBalanceDto>(HttpStatusCode.OK, vacationBalance);
@@ -251,6 +348,17 @@ public class VacationBalanceService : IVacationBalanceService
             PeriodStart = updatedBalance.PeriodStart.ToString("yyyy-MM-dd"),
             PeriodEnd = updatedBalance.PeriodEnd.ToString("yyyy-MM-dd"),
             EmployeeId = updatedBalance.EmployeeId,
+            Employee = new GetEmployeeDto
+            {
+                Id = updatedBalance.Employee.Id,
+                FirstName = updatedBalance.Employee.FirstName,
+                LastName = updatedBalance.Employee.LastName,
+                Position = updatedBalance.Employee.Position,
+                HireDate = updatedBalance.Employee.HireDate.ToString("yyyy-MM-dd"),
+                BaseSalary = updatedBalance.Employee.SalaryHistories.OrderByDescending(sh=> sh.Month).Select(sh=> sh.BaseAmount).FirstOrDefault(),
+                IsActive = updatedBalance.Employee.IsActive,
+                DepartmentName = updatedBalance.Employee.Department.Name
+            }
         };
 
         return new Response<GetVacationBalanceDto>(HttpStatusCode.OK, updatedVacationBalance);

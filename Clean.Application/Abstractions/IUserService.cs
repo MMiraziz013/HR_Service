@@ -15,5 +15,5 @@ public interface IUserService
     
     Task<Response<string>> UpdatePasswordAsync(UpdatePasswordDto dto, int userId);
 
-    Task<Response<UserProfileDto>> UpdateMyProfileAsync(UpdateUserProfileDto update, int userId);
+    Task<Response<UserProfileDto>> UpdateProfileAsync(UpdateUserProfileDto update);
 }

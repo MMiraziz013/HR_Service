@@ -43,6 +43,11 @@ public class JwtTokenService : IJwtTokenService
             new Claim(ClaimTypes.Name, user.UserName ?? string.Empty),
             new Claim(ClaimTypes.Role, roleName)
         };
+        
+        if (user.EmployeeId.HasValue)
+        {
+            claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
+        }
 
         // Fetch permissions assigned to the role
         var role = await _roleManager.FindByNameAsync(roleName);
@@ -78,6 +83,11 @@ public class JwtTokenService : IJwtTokenService
             new Claim(ClaimTypes.Email, user.Email!),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
         };
+        
+        if (user.EmployeeId.HasValue)
+        {
+            claims.Add(new Claim("EmployeeId", user.EmployeeId.Value.ToString()));
+        }
 
         var roles = await _userManager.GetRolesAsync(user);
 

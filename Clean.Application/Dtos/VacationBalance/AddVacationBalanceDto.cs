@@ -13,5 +13,5 @@ public class AddVacationBalanceDto
     public DateOnly PeriodEnd { get; set; }
     public int EmployeeId { get; set; }
     
-    //TODO: Check the the dto properties, if they are correct
+
 }

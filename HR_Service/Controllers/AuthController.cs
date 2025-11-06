@@ -24,7 +24,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> RegisterAsync([FromBody] RegisterUserDto dto)
     {
         var response = await _userService.RegisterUserAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);
     }
 
     /// <summary>
@@ -34,6 +34,6 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> LoginAsync([FromBody] LoginDto dto)
     {
         var response = await _userService.LoginUserAsync(dto);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 }

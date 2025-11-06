@@ -17,9 +17,11 @@ public static class RolePermissionService
                 PermissionConstants.SalaryHistories.Manage,
                 
                 PermissionConstants.VacationRecords.View,
+                PermissionConstants.VacationRecords.ManageSelf,
                 PermissionConstants.VacationRecords.Manage,
                 
                 PermissionConstants.VacationBalance.View,
+                PermissionConstants.VacationBalance.ManageSelf,
                 PermissionConstants.VacationBalance.Manage,
                 
                 PermissionConstants.SalaryAnomalies.View,
@@ -46,9 +48,11 @@ public static class RolePermissionService
                 PermissionConstants.SalaryHistories.Manage,
                 
                 PermissionConstants.VacationRecords.View,
+                PermissionConstants.VacationRecords.ManageSelf,
                 PermissionConstants.VacationRecords.Manage,
                 
                 PermissionConstants.VacationBalance.View,
+                PermissionConstants.VacationBalance.ManageSelf,
                 PermissionConstants.VacationBalance.Manage,
                 
                 PermissionConstants.SalaryAnomalies.View,
@@ -70,12 +74,16 @@ public static class RolePermissionService
                 PermissionConstants.User.ManageSelf,
                 PermissionConstants.Employees.View,
                 
-                //TODO: Check later if employees should see their payment calculations
-                // PermissionConstants.SalaryHistories.View,
+                PermissionConstants.SalaryHistories.View,
                 
                 PermissionConstants.VacationRecords.View,
+                PermissionConstants.VacationRecords.ManageSelf,
+                
                 PermissionConstants.VacationBalance.View,
+                PermissionConstants.VacationBalance.ManageSelf,
+                
                 PermissionConstants.Departments.View,
+                
                 PermissionConstants.PayrollRecords.View,
 
             }

@@ -15,8 +15,7 @@ public class DepartmentService : IDepartmentService
         _departmentRepository = departmentRepository;
     }
 
-    //TODO: Modify to return DepartmentDto
-    public async Task<Response<bool>> AddDepartmentAsync(AddDepartmentDto dto)
+    public async Task<Response<GetDepartmentDto>> AddDepartmentAsync(AddDepartmentDto dto)
     {
         var department = new Domain.Entities.Department
         {
@@ -27,10 +26,17 @@ public class DepartmentService : IDepartmentService
         var isAdded = await _departmentRepository.AddDepartmentAsync(department);
         if (isAdded == false)
         {
-            return new Response<bool>(HttpStatusCode.BadRequest, message: "Error while adding the department (maybe it already exists).");
+            return new Response<GetDepartmentDto>(HttpStatusCode.BadRequest, message: "Error while adding the department (maybe it already exists).");
         }
 
-        return new Response<bool>(HttpStatusCode.OK, message: "Department added successfully!", true);
+        var addedDepartment = new GetDepartmentDto
+        {
+            Id = department.Id,
+            Name = department.Name,
+            Description = department.Description
+        };
+
+        return new Response<GetDepartmentDto>(HttpStatusCode.OK, message: "Department added successfully!", addedDepartment);
     }
 
     public async Task<Response<List<GetDepartmentDto>>> GetDepartmentsAsync(string? search = null)
@@ -83,6 +89,26 @@ public class DepartmentService : IDepartmentService
         }).ToList();
 
         return new Response<List<GetDepartmentWithEmployeesDto>>(HttpStatusCode.OK, "Departments with employees retrieved successfully!", departmentDtos);
+    }
+
+    public async Task<Response<List<GetDepartmentSummaryDto>>> GetDepartmentsSummaryAsync(string? search)
+    {
+        var departments = await _departmentRepository.GetDepartmentsAsync(search);
+        if (departments.Count == 0)
+        {
+            return new Response<List<GetDepartmentSummaryDto>>(HttpStatusCode.NotFound, "No departments found.");
+        }
+
+        var departmentDtos = departments.Select(d => new GetDepartmentSummaryDto
+        {
+            Id = d.Id,
+            Name = d.Name,
+            Description = d.Description,
+            EmployeeCount = d.Employees.Count
+        }).ToList();
+
+
+        return new Response<List<GetDepartmentSummaryDto>>(HttpStatusCode.OK, departmentDtos);
     }
 
     public async Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id)
@@ -143,8 +169,15 @@ public class DepartmentService : IDepartmentService
             return new Response<GetDepartmentDto>(HttpStatusCode.NotFound, "Department not found.");
         }
 
-        existing.Name = dto.Name;
-        existing.Description = dto.Description;
+        if (string.IsNullOrEmpty(dto.Name) == false)
+        {
+            existing.Name = dto.Name;
+        }
+
+        if (string.IsNullOrEmpty(dto.Description) == false)
+        {
+            existing.Description = dto.Description;
+        }
 
         var isUpdated = await _departmentRepository.UpdateDepartmentAsync(existing);
         if (isUpdated == false)
@@ -154,6 +187,7 @@ public class DepartmentService : IDepartmentService
 
         var updatedDto = new GetDepartmentDto
         {
+            Id = existing.Id,
             Name = existing.Name,
             Description = existing.Description
         };

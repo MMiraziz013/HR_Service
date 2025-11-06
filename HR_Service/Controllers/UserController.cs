@@ -26,18 +26,29 @@ public class UsersController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.GetUserProfileAsync(userId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
     /// Get all user profiles (Admin/HR only).
     /// </summary>
     [HttpGet]
-    [PermissionAuthorize(PermissionConstants.User.ManageEmployees)]
+    [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
     public async Task<IActionResult> GetAllAsync([FromQuery] string? search = null)
     {
         var response = await _userService.GetAllUserProfilesAsync(search);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
+    }
+    
+    /// <summary>
+    /// Update the chosen user profile.
+    /// </summary>
+    [HttpPut]
+    [PermissionAuthorize(PermissionConstants.User.ManageEmployees)]
+    public async Task<IActionResult> UpdateUserProfileAsync([FromBody] UpdateUserProfileDto dto)
+    {
+        var response = await _userService.UpdateProfileAsync(dto);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
@@ -47,9 +58,9 @@ public class UsersController : ControllerBase
     [PermissionAuthorize(PermissionConstants.User.ManageSelf)]
     public async Task<IActionResult> UpdateMyProfileAsync([FromBody] UpdateUserProfileDto dto)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-        var response = await _userService.UpdateMyProfileAsync(dto, userId);
-        return Ok(response);
+        dto.EmployeeId = int.Parse(User.FindFirstValue("EmployeeId")!);
+        var response = await _userService.UpdateProfileAsync(dto);
+        return StatusCode(response.StatusCode, response);    
     }
 
     /// <summary>
@@ -61,6 +72,6 @@ public class UsersController : ControllerBase
     {
         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var response = await _userService.UpdatePasswordAsync(dto, userId);
-        return Ok(response);
+        return StatusCode(response.StatusCode, response);    
     }
 }
