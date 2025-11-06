@@ -2,7 +2,6 @@
 using Clean.Infrastructure.Data;
 using Clean.Infrastructure.Data.Repositories;
 using Clean.Infrastructure.Data.Seed;
-using Clean.Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
