@@ -243,7 +243,9 @@ public class UserService : IUserService
         // Try to get from Redis first
         var cached = await _cacheService.GetAsync<List<UserProfileDto>>(cacheKey);
         if (cached != null)
+        {
             return new Response<List<UserProfileDto>>(HttpStatusCode.OK, "Users retrieved successfully!", cached);
+        }
 
         var users = await _userRepository.GetUsersAsync(search);
 

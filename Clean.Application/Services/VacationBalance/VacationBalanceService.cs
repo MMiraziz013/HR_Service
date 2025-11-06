@@ -15,6 +15,7 @@ public class VacationBalanceService : IVacationBalanceService
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IVacationRecordRepository _vacationRecordRepository;
     private readonly IDataContext _context;
+    private readonly ICacheService _cacheService;
     private readonly ILogger<VacationBalanceService> _logger;
 
     public VacationBalanceService(
@@ -22,12 +23,14 @@ public class VacationBalanceService : IVacationBalanceService
         IEmployeeRepository employeeRepository,
         IVacationRecordRepository vacationRecordRepository,
         IDataContext context,
+        ICacheService cacheService,
         ILogger<VacationBalanceService> logger)
     {
         _vacationBalanceRepository = vacationBalanceRepository;
         _employeeRepository = employeeRepository;
         _vacationRecordRepository = vacationRecordRepository;
         _context = context;
+        _cacheService = cacheService;
         _logger = logger;
     }
     
