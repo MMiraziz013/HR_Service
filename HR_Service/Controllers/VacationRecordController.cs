@@ -68,13 +68,13 @@ public class VacationRecordController : Controller
         return StatusCode(response.StatusCode, response);    
     }
 
-    [HttpPut]
-    [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
-    public async Task<IActionResult> UpdateVacationRecordAsync([FromBody] UpdateVacationRecordDto dto)
-    {
-        var response = await _vacationRecordService.UpdateVacationRecordAsync(dto);
-        return StatusCode(response.StatusCode, response);    
-    }
+    // [HttpPut]
+    // [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
+    // public async Task<IActionResult> UpdateVacationRecordAsync([FromBody] UpdateVacationRecordDto dto)
+    // {
+    //     var response = await _vacationRecordService.UpdateVacationRecordAsync(dto);
+    //     return StatusCode(response.StatusCode, response);    
+    // }
 
     [HttpDelete]
     [PermissionAuthorize(PermissionConstants.VacationRecords.Manage)]
@@ -99,6 +99,14 @@ public class VacationRecordController : Controller
     {
         dto.UpdatedStatus = VacationStatus.Rejected;
         var response = await _vacationRecordService.HrRespondToVacationRequest(dto);
+        return StatusCode(response.StatusCode, response);
+    }
+
+    [HttpPut("cancel/{id:int}")]
+    [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
+    public async Task<IActionResult> CancelMyRequestAsync(int id)
+    {
+        var response = await _vacationRecordService.CancelVacationRequestAsync(id);
         return StatusCode(response.StatusCode, response);
     }
 }

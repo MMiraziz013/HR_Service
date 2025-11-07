@@ -51,11 +51,10 @@ public static class InfrastructureInjection
             var connectionStringRedis = configuration["Redis:ConnectionString"];
             return ConnectionMultiplexer.Connect($"{connectionStringRedis},abortConnect=false");
         });
-
         
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
+        services.AddTransient<ISalaryAnomalyRepository, SalaryAnomalyRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
-      
         
         services.AddHttpClient<IEmailService, PostmarkEmailService>();
         

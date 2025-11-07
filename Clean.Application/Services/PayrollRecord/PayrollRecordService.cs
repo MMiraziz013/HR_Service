@@ -23,57 +23,57 @@ public class PayrollRecordService : IPayrollRecordService
 
     
    public async Task GenerateMonthlyPayrollRecordsAsync()
-{
-    var employees = await _employeeRepository.GetActiveEmployeesAsync();
-
-  
-    var today = DateOnly.FromDateTime(DateTime.UtcNow);
-    var startOfMonth = new DateOnly(today.Year, today.Month, 1);
-    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-    
-    var existingPayrolls = await _payrollRecordRepository.GetPayrollRecordsAsync(
-        new PayrollRecordFilter
-        {
-            FromDate = startOfMonth,
-            ToDate = endOfMonth
-        });
-    var existingPayrollsList = existingPayrolls.ToList();
-    foreach (var employee in employees)
     {
-        if (existingPayrollsList.Any(p => p.EmployeeId == employee.Id))
-            continue;
+        var employees = await _employeeRepository.GetActiveEmployeesAsync();
 
-       
-        var lastPayroll = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employee.Id);
-
-        if (lastPayroll == null)
+      
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var startOfMonth = new DateOnly(today.Year, today.Month, 1);
+        var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+        
+        var existingPayrolls = await _payrollRecordRepository.GetPayrollRecordsAsync(
+            new PayrollRecordFilter
+            {
+                FromDate = startOfMonth,
+                ToDate = endOfMonth
+            });
+        var existingPayrollsList = existingPayrolls.ToList();
+        foreach (var employee in employees)
         {
-            _logger.LogWarning("Skipping EmployeeId {Id}: no previous payroll found.", employee.Id);
-            continue;
+            if (existingPayrollsList.Any(p => p.EmployeeId == employee.Id))
+                continue;
+
+           
+            var lastPayroll = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employee.Id);
+
+            if (lastPayroll == null)
+            {
+                _logger.LogWarning("Skipping EmployeeId {Id}: no previous payroll found.", employee.Id);
+                continue;
+            }
+            var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(employee.Id);
+            if (latestSalary == null)
+            {
+                _logger.LogWarning("Skipping EmployeeId {Id}: no salary history found.", employee.Id);
+                continue;
+            }
+
+        
+            var newPayroll = new AddPayrollRecordDto()
+            {
+                EmployeeId = employee.Id,
+                PeriodStart = startOfMonth,
+                PeriodEnd = endOfMonth,
+                Deductions = lastPayroll.Deductions, 
+                  };
+
+            await AddPayrollRecordAsync(newPayroll);
+
+            _logger.LogInformation("Auto-generated payroll for EmployeeId {Id} for {Month}", 
+                employee.Id, startOfMonth.ToString("yyyy-MM"));
         }
-        var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(employee.Id);
-        if (latestSalary == null)
-        {
-            _logger.LogWarning("Skipping EmployeeId {Id}: no salary history found.", employee.Id);
-            continue;
-        }
-
-    
-        var newPayroll = new AddPayrollRecordDto()
-        {
-            EmployeeId = employee.Id,
-            PeriodStart = startOfMonth,
-            PeriodEnd = endOfMonth,
-            Deductions = lastPayroll.Deductions, 
-              };
-
-        await AddPayrollRecordAsync(newPayroll);
-
-        _logger.LogInformation("Auto-generated payroll for EmployeeId {Id} for {Month}", 
-            employee.Id, startOfMonth.ToString("yyyy-MM"));
+        
     }
-    
-}
 
    public async Task<Response<GetPayrollRecordDto>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto)
 {

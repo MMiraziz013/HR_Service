@@ -25,7 +25,7 @@ public class DepartmentRepository : IDepartmentRepository
         var isAdded = await _context.SaveChangesAsync();
         return isAdded > 0;
     }
-
+    
     public async Task<List<Department>> GetDepartmentsAsync(string? search = null)
     {
         var query = _context.Departments
@@ -37,7 +37,7 @@ public class DepartmentRepository : IDepartmentRepository
         {
             query = query.Where(d => EF.Functions.ILike(d.Name!, $"%{search}%"));
         }
-
+        
         return await query.OrderBy(d => d.Id).ToListAsync();
     }
 
