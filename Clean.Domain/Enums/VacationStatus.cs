@@ -6,4 +6,5 @@ public enum VacationStatus
     Approved = 2,
     Finished = 3,
     Rejected = 4,
+    Cancelled = 5,
 }

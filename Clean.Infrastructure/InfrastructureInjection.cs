@@ -3,6 +3,7 @@ using Clean.Infrastructure.Data;
 using Clean.Infrastructure.Data.Repositories;
 using Clean.Infrastructure.Data.Seed;
 using Clean.Infrastructure.Data.Services;
+using Clean.Infrastructure.Email;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -50,15 +51,13 @@ public static class InfrastructureInjection
             var connectionStringRedis = configuration["Redis:ConnectionString"];
             return ConnectionMultiplexer.Connect($"{connectionStringRedis},abortConnect=false");
         });
-
         
         services.AddTransient<ISalaryHistoryRepository, SalaryHistoryRepository>();
+        services.AddTransient<ISalaryAnomalyRepository, SalaryAnomalyRepository>();
         services.AddTransient<IPayrollRecordRepository, PayrollRecordRepository>();
-      
         
         services.AddHttpClient<IEmailService, PostmarkEmailService>();
         
         return services;
     }
-
 }
