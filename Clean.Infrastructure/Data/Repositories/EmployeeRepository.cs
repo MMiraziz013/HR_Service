@@ -138,6 +138,16 @@ public class EmployeeRepository : IEmployeeRepository
         return existing;
     }
 
+    public async Task<List<Employee>> GetActiveEmployeesByDepartmentAsync(int departmentId)
+    {
+        var employees = await _context.Employees
+            .Where(e => e.IsActive && e.DepartmentId == departmentId)
+            .ToListAsync();
+
+        return employees;
+    }
+
+
     public async Task<bool> DeactivateEmployeeAsync(int id)
     {
         var employee = await _context.Employees.FirstOrDefaultAsync(e => e.Id == id);

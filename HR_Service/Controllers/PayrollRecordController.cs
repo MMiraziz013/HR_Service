@@ -58,13 +58,13 @@ public class PayrollRecordController : Controller
     }
     
 
-    [HttpPut("update")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
-    public async Task<IActionResult> Update([FromBody] UpdatePayrollRecordDto dto)
-    {
-        var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
-        return StatusCode(response.StatusCode, response);
-    }
+    // [HttpPut("update")]
+    // [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    // public async Task<IActionResult> Update([FromBody] UpdatePayrollRecordDto dto)
+    // {
+    //     var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
+    //     return StatusCode(response.StatusCode, response);
+    // }
     
     [HttpGet("statistics/total-net-pay")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
@@ -89,4 +89,13 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.DeletePayrollRecordAsync(id);
         return StatusCode(response.StatusCode, response);
     }
+
+    [HttpPut("update/{id}")]
+    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdatePayrollDto dto)  {
+        dto.EmployeeId = id;
+        var response = await _payrollRecordService.UpdatePayrollDeductionsAsync(dto);
+        return StatusCode(response.StatusCode, response);
+    }
+    
 }

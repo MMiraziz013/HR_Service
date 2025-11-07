@@ -173,12 +173,21 @@ public static class Program
             var anomalyJobKey = new JobKey("SalaryAnomalyJob");
             q.AddJob<SalaryAnomalyJob>(opts => opts.WithIdentity(anomalyJobKey));
 
-            // ✅ Salary Anomaly Job: Runs at 22:00 UTC (03:00 AM GMT+5)
+           
             q.AddTrigger(opts => opts
                     .ForJob(anomalyJobKey)
                     .WithIdentity("SalaryAnomalyTrigger")
                     .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
                         .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
+            );
+            
+            var payrollJobKey = new JobKey("GeneratePayrollJob");
+            q.AddJob<PayrollRecordJob>(opts => opts.WithIdentity(jobKey));
+
+            q.AddTrigger(opts => opts
+                .ForJob(jobKey)
+                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                    .InTimeZone(TimeZoneInfo.Utc))
             );
         });
         

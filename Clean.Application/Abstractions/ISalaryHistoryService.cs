@@ -15,8 +15,11 @@ public interface ISalaryHistoryService
     Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByMonthAsync(DateTime month);
     Task<Response<List<GetSalaryHistoryDto>>> GetLatestSalaryHistoriesAsync(SalaryHistoryFilter? filter = null);
     Task GenerateMonthlySalaryHistoryAsync();
-
+    Task<Response<UpdateSalaryDto>> UpdateSalaryHistoryAsync(UpdateSalaryDto dto);
     Task<Response<GetSalaryHistoryDto>> GetByIdAsync(int id);
+
+    Task<Response<List<DepartmentBonusAppliedDto>>>
+        ApplyDepartmentBonusAsync(int departmentId, decimal bonusPercentage);
     //Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoriesAsync();
     // Task<Response<bool>> DeleteSalaryHistoryAsync(int id);
     // Task<Response<TotalPaidDto>> GetTotalPaidAmountAsync(int employeeId, DateTime startDate, DateTime endDate);

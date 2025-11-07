@@ -31,6 +31,22 @@ public class PayrollRecordRepository: IPayrollRecordRepository
         return true;
     }
 
+    public async Task<PayrollRecord?> GetPayrollByMonthAsync(int employeeId, DateOnly month)
+    {
+        var startOfMonth = new DateOnly(month.Year, month.Month, 1);
+        var endOfMonth = new DateOnly(month.Year, month.Month, DateTime.DaysInMonth(month.Year, month.Month));
+
+        var payroll = await _context.PayrollRecords
+            .Include(p => p.Employee)
+            .Where(p => p.EmployeeId == employeeId &&
+                        p.PeriodStart >= startOfMonth &&
+                        p.PeriodStart <= endOfMonth)
+            .FirstOrDefaultAsync();
+
+        return payroll;
+    }
+
+    
 
     public async Task<IEnumerable<PayrollRecord>> GetPayrollRecordsAsync(PayrollRecordFilter filter)
     {
@@ -165,7 +181,7 @@ public class PayrollRecordRepository: IPayrollRecordRepository
                         s.Employee.Position.ToString().ToLower() == normalizedPosition)
             .ToListAsync();
 
-        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
     }
 
     public async Task<decimal> GetDepartmentActualAverageAsync(int departmentId)
@@ -175,18 +191,18 @@ public class PayrollRecordRepository: IPayrollRecordRepository
             .Where(s => s.Employee.DepartmentId == departmentId)
             .ToListAsync();
         
-        return payrolls.Any() ? payrolls.Average(p => p.NetPay) : 0m;
+        return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
     }
-
+    
     public async Task<List<PayrollRecord>> GetPayrollRecordsAsync(DateTime startMonth, DateTime endMonth)
     {
         var startDate = new DateTime(startMonth.Year, startMonth.Month, 1);
         var endDate = new DateTime(endMonth.Year, endMonth.Month, 1).AddMonths(1).AddDays(-1);
-
+    
         return await _context.PayrollRecords
             .Where(r => r.CreatedAt.Date >= startDate.Date && r.CreatedAt.Date <= endDate.Date)
             .ToListAsync();
-
+    
     }
 
 }

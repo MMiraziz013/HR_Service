@@ -81,19 +81,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
         }
         return await list.ToListAsync();
     }
-  
-    // public async Task<bool> DeleteAsync(int id)
-    // {
-    //     var toDelete = await _context.SalaryHistories.FindAsync(id);
-    //     if (toDelete is null)
-    //     {
-    //         throw new ArgumentException($"No salary with id {id} was found in database.");
-    //     }
-    //
-    //     _context.SalaryHistories.Remove(toDelete);
-    //     var isDeleted = await _context.SaveChangesAsync();
-    //     return isDeleted > 0;
-    // }
+    
 
     public async Task<SalaryHistory?> GetSalaryByMonth(int employeeId, DateOnly month)
     {
@@ -185,4 +173,26 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
     //     return employee ?? "Not found";
     // }
 
+
+    public async Task<bool> UpdateSalaryAsync(SalaryHistory salary)
+    {
+       
+        var currentMonth = salary.Month;
+        var existing = await _context.SalaryHistories
+            .FirstOrDefaultAsync(s => s.EmployeeId == salary.EmployeeId && s.Month == currentMonth);
+
+        if (existing == null)
+        {
+            return false;
+        }
+        
+        existing.BaseAmount = salary.BaseAmount;
+        
+        _context.SalaryHistories.Update(existing);
+        var result = await _context.SaveChangesAsync();
+
+        return result > 0;
+    }
+    
+   
 }

@@ -22,15 +22,14 @@ public class PayrollRecordService : IPayrollRecordService
     }
 
     
-   public async Task GenerateMonthlyPayrollRecordsAsync()
+  public async Task GenerateMonthlyPayrollRecordsAsync()
 {
     var employees = await _employeeRepository.GetActiveEmployeesAsync();
 
-  
     var today = DateOnly.FromDateTime(DateTime.UtcNow);
     var startOfMonth = new DateOnly(today.Year, today.Month, 1);
-    var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
-    
+    var endOfMonth = new DateOnly(today.Year, today.Month, DateTime.DaysInMonth(today.Year, today.Month));
+
     var existingPayrolls = await _payrollRecordRepository.GetPayrollRecordsAsync(
         new PayrollRecordFilter
         {
@@ -38,80 +37,96 @@ public class PayrollRecordService : IPayrollRecordService
             ToDate = endOfMonth
         });
     var existingPayrollsList = existingPayrolls.ToList();
+
     foreach (var employee in employees)
     {
+        
         if (existingPayrollsList.Any(p => p.EmployeeId == employee.Id))
             continue;
 
-       
-        var lastPayroll = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employee.Id);
-
-        if (lastPayroll == null)
+      
+        if (employee.HireDate >= startOfMonth)
         {
-            _logger.LogWarning("Skipping EmployeeId {Id}: no previous payroll found.", employee.Id);
+            _logger.LogInformation("Skipping EmployeeId {Id}: hired this month, payroll must be added manually.", employee.Id);
             continue;
         }
+
+       
         var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(employee.Id);
-        if (latestSalary == null)
+        if (latestSalary == null || latestSalary.Month.Month!=today.Month)
         {
             _logger.LogWarning("Skipping EmployeeId {Id}: no salary history found.", employee.Id);
             continue;
         }
 
-    
-        var newPayroll = new AddPayrollRecordDto()
+        
+        var lastPayroll = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employee.Id);
+        decimal deductions = lastPayroll?.Deductions ?? 0m;
+
+        var newPayroll = new AddPayrollRecordDto
         {
             EmployeeId = employee.Id,
             PeriodStart = startOfMonth,
             PeriodEnd = endOfMonth,
-            Deductions = lastPayroll.Deductions, 
-              };
+            Deductions = deductions
+        };
 
         await AddPayrollRecordAsync(newPayroll);
 
         _logger.LogInformation("Auto-generated payroll for EmployeeId {Id} for {Month}", 
             employee.Id, startOfMonth.ToString("yyyy-MM"));
     }
-    
 }
 
-   public async Task<Response<GetPayrollRecordDto>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto)
+
+ public async Task<Response<GetPayrollRecordDto>> AddPayrollRecordAsync(AddPayrollRecordDto payrollDto)
 {
+    var currentMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+    
     var employee = await _employeeRepository.GetEmployeeByIdAsync(payrollDto.EmployeeId);
     if (employee is null)
-    {
         return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, "Employee not found.");
-    }
+    
+    
+    var salary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(payrollDto.EmployeeId);
+    if (salary is null || salary.Month != currentMonth)
+        return new Response<GetPayrollRecordDto>(HttpStatusCode.BadRequest, "No salary record found for the current month.");
+    
+    var periodStart = employee.HireDate > currentMonth ? employee.HireDate : currentMonth;
 
-    var latestSalary = await _salaryHistoryRepository.GetLatestSalaryHistoryAsync(payrollDto.EmployeeId);
-    if (latestSalary is null)
+  
+    var periodEnd = new DateOnly(currentMonth.Year, currentMonth.Month, DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month));
+    
+    decimal grossPay;
+
+    if (employee.HireDate > currentMonth)
     {
-        return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, "No Salary record found for this employee.");
+        int totalDays = DateTime.DaysInMonth(currentMonth.Year, currentMonth.Month);
+        int workedDays = periodEnd.Day - periodStart.Day + 1;
+        grossPay = salary.ExpectedTotal * workedDays / totalDays;
     }
-
-
-    var periodStart = latestSalary.Month;  
-    var periodEnd = periodStart.AddMonths(1);
+    else 
+    {
+        grossPay = salary.ExpectedTotal;
+    }
 
     var payroll = new Domain.Entities.PayrollRecord
     {
         EmployeeId = payrollDto.EmployeeId,
         PeriodStart = periodStart,
         PeriodEnd = periodEnd,
-        GrossPay = latestSalary.ExpectedTotal,
+        GrossPay = grossPay,
         Deductions = payrollDto.Deductions,
         CreatedAt = DateTime.UtcNow
     };
 
     var isAdded = await _payrollRecordRepository.AddAsync(payroll);
     if (!isAdded)
-    {
         return new Response<GetPayrollRecordDto>(HttpStatusCode.BadRequest, "Error while adding new payroll record.");
-    }
 
     return new Response<GetPayrollRecordDto>(
         HttpStatusCode.OK,
-        $"Payroll record for {employee.FirstName} was added successfully",
+        $"Payroll record for {employee.FirstName} {employee.LastName} was added successfully",
         new GetPayrollRecordDto
         {
             Id = payroll.Id,
@@ -126,7 +141,38 @@ public class PayrollRecordService : IPayrollRecordService
         }
     );
 }
+ 
+public async Task<Response<UpdatePayrollDto>> UpdatePayrollDeductionsAsync(UpdatePayrollDto dto)
+{
+    var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
+    if (employee is null)
+        return new Response<UpdatePayrollDto>(HttpStatusCode.NotFound, "Employee not found.");
 
+    var currentMonth = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+    
+    var payroll = await _payrollRecordRepository.GetPayrollByMonthAsync(dto.EmployeeId, currentMonth);
+    if (payroll is null)
+        return new Response<UpdatePayrollDto>(HttpStatusCode.NotFound, "Payroll record for current month not found.");
+    
+    payroll.Deductions = dto.Deductions;
+
+    var isUpdated = await _payrollRecordRepository.UpdateAsync(payroll);
+    if (!isUpdated)
+        return new Response<UpdatePayrollDto>(HttpStatusCode.InternalServerError, "Failed to update payroll.");
+
+    var updatedDto = new UpdatePayrollDto
+    {
+        EmployeeId = payroll.EmployeeId,
+        Deductions = payroll.Deductions,
+    };
+
+    return new Response<UpdatePayrollDto>(
+        HttpStatusCode.OK,
+        "Payroll deductions updated successfully.",
+        updatedDto
+    );
+}
 
     public async Task<Response<List<GetPayrollRecordDto>>> GetAllPayrollRecordsAsync()
     {
@@ -248,25 +294,25 @@ public class PayrollRecordService : IPayrollRecordService
 
     }
 
-    public async Task<Response<bool>> UpdatePayrollRecordAsync(UpdatePayrollRecordDto payrollDto)
-    {
-        var exists = await _payrollRecordRepository.GetByIdAsync(payrollDto.Id);
-        if (exists is null)
-        {
-            return new Response<bool>(HttpStatusCode.NotFound, "Payroll record is not found.");
-        }
-
-        exists.Deductions = payrollDto.Deductions;
-
-        var isUpdated = await _payrollRecordRepository.UpdateAsync(exists);
-        if (isUpdated == false)
-        {
-            return new Response<bool>(HttpStatusCode.InternalServerError, "Payroll record could not be updated.");
-        }
-
-        return new Response<bool>(HttpStatusCode.OK, "Record is updated successfully!",true);
-
-    }
+    // public async Task<Response<bool>> UpdatePayrollRecordAsync(UpdatePayrollRecordDto payrollDto)
+    // {
+    //     var exists = await _payrollRecordRepository.GetByIdAsync(payrollDto.Id);
+    //     if (exists is null)
+    //     {
+    //         return new Response<bool>(HttpStatusCode.NotFound, "Payroll record is not found.");
+    //     }
+    //
+    //     exists.Deductions = payrollDto.Deductions;
+    //
+    //     var isUpdated = await _payrollRecordRepository.UpdateAsync(exists);
+    //     if (isUpdated == false)
+    //     {
+    //         return new Response<bool>(HttpStatusCode.InternalServerError, "Payroll record could not be updated.");
+    //     }
+    //
+    //     return new Response<bool>(HttpStatusCode.OK, "Record is updated successfully!",true);
+    //
+    // }
 
     public async Task<Response<bool>> DeletePayrollRecordAsync(int id)
     {

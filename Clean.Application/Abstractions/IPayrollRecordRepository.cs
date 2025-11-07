@@ -17,10 +17,9 @@ public interface IPayrollRecordRepository
     Task<decimal> GetTotalPaidForMonth(DateOnly month);
     Task<decimal> GetPositionExpectedAverageAsync(int departmentId, string position);
     Task<decimal> GetDepartmentExpectedAverageAsync(int departmentId);
-    
-    
+
+    Task<PayrollRecord?> GetPayrollByMonthAsync(int employeeId, DateOnly month);
     Task<decimal> GetPositionActualAverageAsync(int departmentId, string position);
     Task<decimal> GetDepartmentActualAverageAsync(int departmentId);
-
     Task<List<PayrollRecord>> GetPayrollRecordsAsync(DateTime startMonth, DateTime endMonth);
 }

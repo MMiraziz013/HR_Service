@@ -17,6 +17,8 @@ public interface ISalaryHistoryRepository
       Task<bool> ExistForMonth(int employeeId, DateOnly month);
       Task<decimal> GetDepartmentAverageSalaryAsync(int departmentId);
       Task<List<SalaryHistory?>> GetLatestSalaryHistoriesAsync();
+      Task<bool> UpdateSalaryAsync(SalaryHistory salary);
+      
       // Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateTime startDate, DateTime endDate);
       // Task<bool> DeleteAsync(int id);
       // Task<List<SalaryHistory>> GetSalaryHistoryByEmailAsync(string email);
