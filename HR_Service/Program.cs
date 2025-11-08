@@ -182,12 +182,14 @@ public static class Program
             );
             
             var payrollJobKey = new JobKey("GeneratePayrollJob");
-            q.AddJob<PayrollRecordJob>(opts => opts.WithIdentity(jobKey));
+            q.AddJob<PayrollRecordJob>(opts => opts.WithIdentity(payrollJobKey));
 
             q.AddTrigger(opts => opts
-                .ForJob(jobKey)
+                .ForJob(payrollJobKey)
                 .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
                     .InTimeZone(TimeZoneInfo.Utc))
+            );
+            
             // ---
 
             var recordJobKey = new JobKey("VacationRecordJob");
