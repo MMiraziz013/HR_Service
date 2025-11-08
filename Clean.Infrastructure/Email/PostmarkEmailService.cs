@@ -21,19 +21,19 @@ public class PostmarkEmailService : IEmailService
         int vacationRequestId,
         string hrEmail,
         string employeeName,
-        DateTime fromDate,
-        DateTime toDate
+        string fromDate,
+        string toDate
     )
     {
-        string baseUrl = _configuration["AppSettings:BaseUrl"];
+        var baseUrl = _configuration["AppSettings:BaseUrl"];
 
-        string approveUrl = $"{baseUrl}/api/vacation/approve?id={vacationRequestId}";
-        string rejectUrl = $"{baseUrl}/api/vacation/reject?id={vacationRequestId}";
+        var approveUrl = $"{baseUrl}/api/vacation/approve?id={vacationRequestId}";
+        var rejectUrl = $"{baseUrl}/api/vacation/reject?id={vacationRequestId}";
 
-        string subject = "New Vacation Request";
-        string body = $@"
+        var subject = "New Vacation Request";
+        var body = $@"
                 <h3>New Vacation Request</h3>
-                <p><b>{employeeName}</b> requested vacation from <b>{fromDate:yyyy-MM-dd}</b> to <b>{toDate:yyyy-MM-dd}</b>.</p>
+                <p><b>{employeeName}</b> requested vacation from <b>{fromDate}</b> to <b>{toDate}</b>.</p>
                 <a href='{approveUrl}' 
                    style='background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;'>
                    ✅ Accept
@@ -61,6 +61,8 @@ public class PostmarkEmailService : IEmailService
             Content = new StringContent(json, Encoding.UTF8, "application/json")
         };
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        request.Headers.Add("X-Postmark-Server-Token", _configuration["EmailSettings:PostmarkApiKey"]);
 
         var response = await _httpClient.SendAsync(request);
         response.EnsureSuccessStatusCode();

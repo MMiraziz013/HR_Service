@@ -188,6 +188,17 @@ public static class Program
                 .ForJob(jobKey)
                 .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
                     .InTimeZone(TimeZoneInfo.Utc))
+            // ---
+
+            var recordJobKey = new JobKey("VacationRecordJob");
+            q.AddJob<VacationRecordJob>(opts => opts.WithIdentity(recordJobKey));
+
+            // ✅ Vacation Record Job: Runs at 22:00 UTC (03:00 AM GMT+5)
+            q.AddTrigger(opts => opts
+                    .ForJob(recordJobKey)
+                    .WithIdentity("VacationRecordTrigger")
+                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
             );
         });
         
@@ -233,6 +244,7 @@ public static class Program
 
 
         app.UseHttpsRedirection();
+        app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<LoggingMiddleware>();
  
         app.UseAuthentication();

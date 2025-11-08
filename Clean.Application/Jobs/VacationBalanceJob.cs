@@ -23,7 +23,6 @@ public class VacationBalanceJob : IJob
         try
         {
             await _vacationBalanceService.AutoUpdateVacationBalancesAsync();
-            await _vacationBalanceService.AutoUpdateVacationStatusesAsync();
 
             _logger.LogInformation("VacationBalanceJob completed successfully at: {time}", DateTime.UtcNow);
         }
