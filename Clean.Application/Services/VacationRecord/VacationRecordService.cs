@@ -34,7 +34,6 @@ public class VacationRecordService : IVacationRecordService
         _emailService = emailService;
     }
     
-    
     /// <summary>
     /// Automatically marks vacations that have ended as Finished.
     /// </summary>
@@ -65,7 +64,6 @@ public class VacationRecordService : IVacationRecordService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while auto-updating vacation statuses.");
-            throw;
         }
     }
     
