@@ -51,7 +51,6 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 EmployeeId = employee.Id,
                 Month = currentMonth,
                 BaseAmount = lastSalary.BaseAmount,
-                BonusAmount = lastSalary.BonusAmount
             };
 
             await AddSalaryHistoryAsync(dto);
@@ -71,14 +70,23 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.BadRequest,
                     message: "Employee with this id is not found");
-            } 
+            }
+            
+            var currentMonth=DateOnly.FromDateTime(DateTime.Now);
+            var exists = await _repository.ExistForMonth(employee.Id,currentMonth);
+            if (exists)
+            {
+                return new Response<GetSalaryHistoryDto>(HttpStatusCode.BadRequest,
+                    $"Salary for employee with ID {employee.Id} is already added!");
+            }
+            
             var entity = new Domain.Entities.SalaryHistory
             {
                 EmployeeId = dto.EmployeeId,
                 BaseAmount = dto.BaseAmount,
-                BonusAmount = dto.BonusAmount,
                 Month = DateOnly.FromDateTime(DateTime.UtcNow)
             };
+            
             if (entity.Month.Year < thisYear ||
                 (entity.Month.Year == thisYear && entity.Month.Month < thisMonth))
             {

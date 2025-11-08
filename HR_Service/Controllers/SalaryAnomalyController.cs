@@ -41,9 +41,9 @@ public class SalaryAnomalyController : Controller
    }
    [HttpPut("mark-viewed")]
    [PermissionAuthorize(PermissionConstants.SalaryAnomalies.Manage)]
-   public async Task<IActionResult> MarkAsViewed([FromBody] int id)
+   public async Task<IActionResult> MarkAsViewed([FromBody] MarkViewedDto request)
    {
-      var response = await _salaryAnomaly.MarkAsViewedAsync(id);
+      var response = await _salaryAnomaly.MarkAsViewedAsync(request.Id);
       return StatusCode(response.StatusCode, response);
    }
 

@@ -5,5 +5,4 @@ public class AddSalaryHistoryDto
     public int EmployeeId { get; set; }
     public DateOnly Month { get; set; }
     public decimal BaseAmount { get; set; }
-    public decimal BonusAmount { get; set; }
 }
