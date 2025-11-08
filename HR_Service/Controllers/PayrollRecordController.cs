@@ -94,12 +94,12 @@ public class PayrollRecordController : ControllerBase
     
     
 
-    [HttpPut("update/{id}")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
-    public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdatePayrollDto dto)  {
-        dto.EmployeeId = id;
-        var response = await _payrollRecordService.UpdatePayrollDeductionsAsync(dto);
-        return StatusCode(response.StatusCode, response);
-    }
-    
+    // [HttpPut("update/{id}")]
+    // [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    // public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdatePayrollDto dto)  {
+    //     dto.EmployeeId = id;
+    //     var response = await _payrollRecordService.UpdatePayrollDeductionsAsync(dto);
+    //     return StatusCode(response.StatusCode, response);
+    // }
+    //
 }
