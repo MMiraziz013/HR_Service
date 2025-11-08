@@ -2,7 +2,7 @@ using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.SalaryHistory;
 using Clean.Application.Security.Permission;
-
+using Clean.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 
 namespace HR_Service.Controllers;
@@ -57,6 +57,24 @@ public class SalaryHistoryController : Controller
     var response = await _salaryHistoryService.GetSalaryHistoryByEmployeeIdAsync(employeeId);
     return StatusCode(response.StatusCode, response);
   }
+
+  [HttpPut("update/{employeeId:int}")]
+  [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
+  public async Task<IActionResult> UpdateBaseSalaryAsync(int employeeId,[FromBody]UpdateSalaryDto salary)
+  {
+    salary.EmployeeId = employeeId;
+    var response = await _salaryHistoryService.UpdateSalaryHistoryAsync(salary);
+    return StatusCode(response.StatusCode, response);
+  }
+
+  [HttpPut("set-bonuses")]
+  [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]
+  public async Task<IActionResult> SetBonusesAsync([FromQuery] int departmentId, [FromQuery] decimal bonusPercentage)
+  {
+    var response =await _salaryHistoryService.ApplyDepartmentBonusAsync(departmentId, bonusPercentage);
+    return StatusCode(response.StatusCode, response);
+  }
+  
   //
   // [HttpGet("get-all")]
   // [PermissionAuthorize(PermissionConstants.SalaryHistories.Manage)]

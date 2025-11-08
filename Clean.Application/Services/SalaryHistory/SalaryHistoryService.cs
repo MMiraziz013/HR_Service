@@ -26,6 +26,7 @@ private readonly ILogger<SalaryHistoryService> _logger;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var currentMonth = new DateOnly(today.Year, today.Month, 1);
         
+        
         var existingSalaries = await _repository.GetSalaryHistoriesAsync(
             new SalaryHistoryFilter{
                 FromMonth = currentMonth,
@@ -50,7 +51,6 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 EmployeeId = employee.Id,
                 Month = currentMonth,
                 BaseAmount = lastSalary.BaseAmount,
-                BonusAmount = lastSalary.BonusAmount
             };
 
             await AddSalaryHistoryAsync(dto);
@@ -70,20 +70,29 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.BadRequest,
                     message: "Employee with this id is not found");
-            } 
+            }
+            
+            var currentMonth=DateOnly.FromDateTime(DateTime.Now);
+            var exists = await _repository.ExistForMonth(employee.Id,currentMonth);
+            if (exists)
+            {
+                return new Response<GetSalaryHistoryDto>(HttpStatusCode.BadRequest,
+                    $"Salary for employee with ID {employee.Id} is already added!");
+            }
+            
             var entity = new Domain.Entities.SalaryHistory
             {
                 EmployeeId = dto.EmployeeId,
                 BaseAmount = dto.BaseAmount,
-                BonusAmount = dto.BonusAmount,
                 Month = DateOnly.FromDateTime(DateTime.UtcNow)
             };
+            
             if (entity.Month.Year < thisYear ||
-                (entity.Month.Year == thisYear && entity.Month.Month <= thisMonth))
+                (entity.Month.Year == thisYear && entity.Month.Month < thisMonth))
             {
                 return new Response<GetSalaryHistoryDto>(
                     HttpStatusCode.BadRequest,
-                    "Cannot add salary for the current or previous months. Only future months are allowed.");
+                    "Cannot add salary for the previous months. Only current are allowed.");
             }
             var isAdded = await _repository.AddAsync(entity);
 
@@ -110,7 +119,40 @@ private readonly ILogger<SalaryHistoryService> _logger;
                 }
             );
     }
+
+    public async Task<Response<UpdateSalaryDto>> UpdateSalaryHistoryAsync(UpdateSalaryDto dto)
+    {
+  
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
+        if (employee == null)
+            return new Response<UpdateSalaryDto>(HttpStatusCode.NotFound, "Employee is not found");
+
+       
+        var currentMonth = DateOnly.FromDateTime(DateTime.UtcNow);
+
     
+        var salary = await _repository.GetSalaryByMonth(dto.EmployeeId, currentMonth);
+        if (salary == null)
+            return new Response<UpdateSalaryDto>(HttpStatusCode.NotFound, "Salary for current month is not found");
+
+       
+        salary.BaseAmount = dto.BaseSalary;
+
+      
+        var isUpdated = await _repository.UpdateSalaryAsync(salary);
+        if (!isUpdated)
+            return new Response<UpdateSalaryDto>(HttpStatusCode.InternalServerError, "Something went wrong, please try again.");
+
+       
+        var updatedDto = new UpdateSalaryDto
+        {
+            EmployeeId = salary.EmployeeId,
+            BaseSalary = salary.BaseAmount
+        };
+
+        return new Response<UpdateSalaryDto>(HttpStatusCode.OK, "Base salary is updated successfully.", updatedDto);
+
+    }
     public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByEmployeeIdAsync(int id)
     {
         if (id is 0)
@@ -355,6 +397,48 @@ private readonly ILogger<SalaryHistoryService> _logger;
             "Salary history retrieved successfully.",
             mapped);
     }
+    
+    
+    public async Task<Response<List<DepartmentBonusAppliedDto>>> ApplyDepartmentBonusAsync(int departmentId, decimal bonusPercentage)
+    {
+        var currentMonth = DateOnly.FromDateTime(DateTime.UtcNow);
+        
+        var employees = await _employeeRepository.GetActiveEmployeesByDepartmentAsync(departmentId);
+
+        if (!employees.Any())
+            return new Response<List<DepartmentBonusAppliedDto>>(HttpStatusCode.NotFound, "No active employees found in this department.", new List<DepartmentBonusAppliedDto>());
+
+        var appliedBonuses = new List<DepartmentBonusAppliedDto>();
+
+        foreach (var emp in employees)
+        {
+            var salary = await _repository.GetSalaryByMonth(emp.Id, currentMonth);
+
+            if (salary != null)
+            {
+                salary.BonusAmount = salary.BaseAmount * bonusPercentage / 100m;
+                
+                await _repository.UpdateSalaryAsync(salary);
+
+                appliedBonuses.Add(new DepartmentBonusAppliedDto
+                {
+                    EmployeeId = emp.Id,
+                    EmployeeName = $"{emp.FirstName} {emp.LastName}",
+                    BaseAmount = salary.BaseAmount,
+                    BonusAmount = salary.BonusAmount,
+                    ExpectedTotal = salary.ExpectedTotal
+                });
+            }
+        }
+
+        return new Response<List<DepartmentBonusAppliedDto>>(
+            HttpStatusCode.OK,
+            "Department bonuses applied successfully.",
+            appliedBonuses
+        );
+    }
+
+    
     //    public async Task<Response<List<GetSalaryHistoryWithEmployeeDto>>> GetSalaryHistoryByIdAsync(int id)
 //    {
 //        var employee = await _employeeRepository.GetEmployeeByIdAsync(id);

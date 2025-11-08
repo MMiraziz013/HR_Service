@@ -7,7 +7,7 @@ namespace HR_Service.Controllers;
 
 [ApiController]
 [Route("api/payroll_record")]
-public class PayrollRecordController : Controller
+public class PayrollRecordController : ControllerBase
 {
     private readonly IPayrollRecordService _payrollRecordService;
 
@@ -16,13 +16,13 @@ public class PayrollRecordController : Controller
         _payrollRecordService = payrollRecordService;
     }
 
-    [HttpPost("add")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
-    public async Task<IActionResult> CreatePayrollRecord([FromBody] AddPayrollRecordDto dto)
-    {
-        var response = await _payrollRecordService.AddPayrollRecordAsync(dto);
-        return StatusCode(response.StatusCode, response);
-    }
+    // [HttpPost("add")]
+    // [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    // public async Task<IActionResult> CreatePayrollRecord([FromBody] AddPayrollRecordDto dto)
+    // {
+    //     var response = await _payrollRecordService.AddPayrollRecordAsync(dto);
+    //     return StatusCode(response.StatusCode, response);
+    // }
 
     [HttpGet("get-all")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
@@ -58,13 +58,13 @@ public class PayrollRecordController : Controller
     }
     
 
-    [HttpPut("update")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
-    public async Task<IActionResult> Update([FromBody] UpdatePayrollRecordDto dto)
-    {
-        var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
-        return StatusCode(response.StatusCode, response);
-    }
+    // [HttpPut("update")]
+    // [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    // public async Task<IActionResult> Update([FromBody] UpdatePayrollRecordDto dto)
+    // {
+    //     var response = await _payrollRecordService.UpdatePayrollRecordAsync(dto);
+    //     return StatusCode(response.StatusCode, response);
+    // }
     
     [HttpGet("statistics/total-net-pay")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
@@ -76,11 +76,13 @@ public class PayrollRecordController : Controller
 
     [HttpGet("get-graph")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
-    public async Task<IActionResult> GetExpextedAndActualAsync([FromQuery]DateTime startMonth,DateTime endMonth)
+    public async Task<IActionResult> GetExpectedAndActualAsync([FromQuery]int monthsRange)
     {
-        var response = await _payrollRecordService.GetPayrollSummaryAsync(startMonth, endMonth);
+        var response = await _payrollRecordService.GetPayrollSummaryAsync(monthsRange);
         return StatusCode(response.StatusCode, response);
     }
+
+ 
     
     [HttpDelete("delete")]
     [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
@@ -89,4 +91,15 @@ public class PayrollRecordController : Controller
         var response = await _payrollRecordService.DeletePayrollRecordAsync(id);
         return StatusCode(response.StatusCode, response);
     }
+    
+    
+
+    // [HttpPut("update/{id}")]
+    // [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
+    // public async Task<IActionResult> UpdateAsync(int id, [FromBody] UpdatePayrollDto dto)  {
+    //     dto.EmployeeId = id;
+    //     var response = await _payrollRecordService.UpdatePayrollDeductionsAsync(dto);
+    //     return StatusCode(response.StatusCode, response);
+    // }
+    //
 }
