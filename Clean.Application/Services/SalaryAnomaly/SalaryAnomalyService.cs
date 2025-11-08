@@ -21,46 +21,70 @@ public class SalaryAnomalyService : ISalaryAnomalyService
         _employeeRepository = employeeRepository;
     }
     
-    public async Task<Response<int>> GenerateAnomaliesAsync()
-    {
-        const float deviationThreshold = 10f;
-        var salaries = await _salaryRepository.GetLatestSalaryHistoriesAsync();
-        var payrolls = await _payrollRepository.GetLatestPayrollAsync();
+   public async Task<Response<int>> GenerateAnomaliesAsync()
+{
+    const float deviationThreshold = 10f;
+    
+    var payrolls = await _payrollRepository.GetLatestPayrollAsync();
 
-        int anomaliesCreated = 0;
-        foreach (var payroll in payrolls)
+    if (payrolls == null || !payrolls.Any())
+        return new Response<int>(HttpStatusCode.OK, "No payroll data found.", 0);
+
+    int anomaliesCreated = 0;
+
+
+    var grouped = payrolls
+        .Where(p => p != null)
+        .GroupBy(p => new { p.Employee.DepartmentId,p.Employee.Position})
+        .Select(g => new
         {
-            if (payroll == null) continue;
-            var latestSalary = salaries.FirstOrDefault(s => s.EmployeeId == payroll.EmployeeId);
-            if (latestSalary== null) continue;
-            var expected = latestSalary.ExpectedTotal;
-            var actual = payroll.NetPay;
-            var deviationPercent =
-                (float)(((actual - expected) / expected) * 100m);
-            // decimal roundedDeviation = Math.Round(deviationPercent, 0);
-            if (Math.Abs(deviationPercent) > deviationThreshold) 
+            g.Key.DepartmentId,
+            g.Key.Position,
+            AverageGrossPay = g.Average(x => x!.GrossPay),
+            Payrolls = g.ToList()
+        })
+        .ToList();
+
+    foreach (var group in grouped)
+    {
+        foreach (var payroll in group.Payrolls)
+        {
+            var actualNet = payroll.NetPay;
+            var avgGross = group.AverageGrossPay;
+
+            if (avgGross == 0) continue;
+
+            var deviationPercent = (float)(((actualNet - avgGross) / avgGross) * 100m);
+
+            if (Math.Abs(deviationPercent) > deviationThreshold)
             {
-                var exists = await _repository.ExistsForEmployeeAndMonthAsync(payroll.EmployeeId, payroll.PeriodEnd);
+                var exists = await _repository.ExistsForEmployeeAndMonthAsync(
+                    payroll.EmployeeId,
+                    payroll.PeriodEnd);
+
                 if (exists) continue;
 
                 var anomaly = new Domain.Entities.SalaryAnomaly
                 {
                     EmployeeId = payroll.EmployeeId,
-                    ExpectedAmount = expected,
-                    ActualAmount = actual,
+                    ExpectedAmount = avgGross,
+                    ActualAmount = actualNet,
                     DeviationPercent = deviationPercent,
                     Month = payroll.PeriodEnd,
                     IsReviewed = false
                 };
+
                 await _repository.AddAsync(anomaly);
                 anomaliesCreated++;
             }
         }
-        return new Response<int>(
-            HttpStatusCode.OK,
-            $"{anomaliesCreated} salary anomalies created successfully.",
-            anomaliesCreated);
     }
+
+    return new Response<int>(
+        HttpStatusCode.OK,
+        $"{anomaliesCreated} salary anomalies created successfully.",
+        anomaliesCreated);
+}
 
     public async  Task<PaginatedResponse<GetSalaryAnomalyDto>> GetAllAsync()
     {
