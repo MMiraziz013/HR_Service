@@ -159,7 +159,9 @@ public static class Program
             var salaryJobKey = new JobKey("SalaryHistoryJob");
             q.AddJob<SalaryHistoryJob>(opts => opts.WithIdentity(salaryJobKey));
 
+            
             // ✅ Salary History Job: Runs at 22:00 UTC (03:00 AM GMT+5) for testing
+            //TODO: It should run on the first date of the month, AFTER the payroll record job
             q.AddTrigger(opts => opts
                     .ForJob(salaryJobKey)
                     .WithIdentity("SalaryHistoryTrigger")
@@ -181,6 +183,7 @@ public static class Program
                         .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
             );
             
+            //TODO: It should run on the first date of the month, BEFORE the salary history job
             var payrollJobKey = new JobKey("GeneratePayrollJob");
             q.AddJob<PayrollRecordJob>(opts => opts.WithIdentity(payrollJobKey));
 
