@@ -177,6 +177,31 @@ public class DepartmentService : IDepartmentService
         }
     }
 
+    //TODO: Add Redis caching for this function
+    public async Task<Response<List<GetDepartmentPaymentsDto>>> GetDepartmentsPaymentAsync()
+    {
+        try
+        {
+            var departments = await _departmentRepository.GetDepartmentsAsync();
+            var departmentWithPayments = departments.Select(d => new GetDepartmentPaymentsDto
+            {
+                Id = d.Id,
+                Name = d.Name,
+                TotalAmount = d.Employees.Sum(e =>
+                    e.SalaryHistories.OrderByDescending(s => s.Month).Select(s => s.ExpectedTotal).FirstOrDefault())
+            }).ToList();
+
+
+            return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.OK, departmentWithPayments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in {MethodName}", nameof(GetDepartmentsSummaryAsync));
+            return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.InternalServerError, message: $"An error occurred: {ex.Message}");
+        }
+        
+    }
+
     public async Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id)
     {
         try

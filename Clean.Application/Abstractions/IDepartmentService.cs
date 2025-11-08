@@ -12,6 +12,7 @@ public interface IDepartmentService
     Task<Response<List<GetDepartmentWithEmployeesDto>>> GetDepartmentsWithEmployeesAsync(string? search = null);
 
     Task<Response<List<GetDepartmentSummaryDto>>> GetDepartmentsSummaryAsync(string? search = null);
+    Task<Response<List<GetDepartmentPaymentsDto>>> GetDepartmentsPaymentAsync();
 
     Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id);
 

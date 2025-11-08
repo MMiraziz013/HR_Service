@@ -48,6 +48,14 @@ public class DepartmentController : ControllerBase
         return StatusCode(response.StatusCode, response);    
     }
 
+    [HttpGet("payments")]
+    [PermissionAuthorize(PermissionConstants.Departments.Manage)]
+    public async Task<IActionResult> GetDepartmentsWithPaymentsAsync()
+    {
+        var response = await _departmentService.GetDepartmentsPaymentAsync();
+        return StatusCode(response.StatusCode, response);
+    }
+
 
     [HttpGet("{id:int}")]
     [PermissionAuthorize(PermissionConstants.Departments.View)]
