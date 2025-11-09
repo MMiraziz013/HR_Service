@@ -51,7 +51,6 @@ public class UserService : IUserService
         _context = context;
     }
 
-    //TODO: Add Salary History creation upon user/employee registration, with bonus set to 0.
     public async Task<Response<string>> RegisterUserAsync(RegisterUserDto dto)
     {
         try

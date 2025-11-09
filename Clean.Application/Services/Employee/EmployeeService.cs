@@ -235,7 +235,6 @@ public class EmployeeService : IEmployeeService
     
     private static string GetEmployeesCacheKey(EmployeePaginationFilter filter)
     {
-        // Concatenate all filter values into a single string
         return $"employees_" +
                $"page:{filter.PageNumber}_size:{filter.PageSize}_" +
                $"email:{filter.Email ?? "null"}_" +
