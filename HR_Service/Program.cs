@@ -246,8 +246,6 @@ public static class Program
         //     config.Scheduler = scheduler;
         // });
 
-
-
         app.UseHttpsRedirection();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<LoggingMiddleware>();

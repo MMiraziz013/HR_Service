@@ -3,6 +3,7 @@ using Clean.Application.Services.Department;
 using Clean.Application.Services.Employee;
 using Clean.Application.Services.JWT;
 using Clean.Application.Services.PayrollRecord;
+using Clean.Application.Services.Reports;
 using Clean.Application.Services.SalaryAnomaly;
 using Clean.Application.Services.SalaryHistory;
 using Clean.Application.Services.User;
@@ -28,6 +29,7 @@ public static class ApplicationInjection
         services.AddTransient<ISalaryHistoryService, SalaryHistoryService>();
         services.AddTransient<IPayrollRecordService, PayrollRecordService>();
         services.AddTransient<ISalaryAnomalyService, SalaryAnomalyService>();
+        services.AddTransient<IReportsService, ReportsService>();
         services.Configure<JwtOptions>(configuration.GetSection(JwtOptions.SectionName));
         services.Configure<JwtTokenService>(configuration.GetSection(JwtOptions.SectionName));
 

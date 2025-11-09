@@ -2,6 +2,8 @@ using System.Net;
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports;
+using Clean.Application.Dtos.Reports.Employee;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -142,6 +144,48 @@ public class EmployeeRepository : IEmployeeRepository
     {
         var employees = await _context.Employees
             .Where(e => e.IsActive && e.DepartmentId == departmentId)
+            .ToListAsync();
+
+        return employees;
+    }
+
+    public async Task<IEnumerable<EmployeeDto>> GetForReportAsync(DateTime? hiredAfter, DateTime? hiredBefore, int? departmentId)
+    {
+        IQueryable<Employee> query = _context.Employees
+            .Include(e=> e.User)
+            .Include(e=> e.Department)
+            .OrderBy(e=> e.Id);
+
+        if (hiredAfter.HasValue)
+        {
+            var afterDateOnly = DateOnly.FromDateTime(hiredAfter.Value);
+            query = query.Where(e => e.HireDate >= afterDateOnly);
+        }
+
+        if (hiredBefore.HasValue)
+        {
+            var beforeDateOnly = DateOnly.FromDateTime(hiredBefore.Value);
+
+            query = query.Where(e => e.HireDate < beforeDateOnly); 
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(e => e.Department.Id == departmentId);
+        }
+
+        var employees = await query
+            .Select(e => new EmployeeDto
+            {
+                Id = e.Id,
+                FullName = e.FirstName + " " + e.LastName,
+                Email = e.User.Email!,
+                HireDate = e.HireDate, 
+                Role = e.User.Role.ToString(),
+                Position = e.Position.ToString(),
+                CurrentSalary = e.SalaryHistories.OrderByDescending(s => s.Month).FirstOrDefault()!.BaseAmount,
+                Department = e.Department.Name
+            })
             .ToListAsync();
 
         return employees;
