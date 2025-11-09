@@ -630,6 +630,7 @@ public SalaryHistoryService(ISalaryHistoryRepository repository,
             await _redisCache.RemoveByPatternAsync("salary_histories_");
             await _redisCache.RemoveByPatternAsync("latest_salary_histories_");
             await _redisCache.RemoveByPatternAsync("total_paid_dept_");
+            await _redisCache.RemoveByPatternAsync("departments_*");
 
             return new Response<List<DepartmentBonusAppliedDto>>(
                 HttpStatusCode.OK,
