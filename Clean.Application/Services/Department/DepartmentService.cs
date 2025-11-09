@@ -177,12 +177,24 @@ public class DepartmentService : IDepartmentService
         }
     }
 
-    //TODO: Add Redis caching for this function
     public async Task<Response<List<GetDepartmentPaymentsDto>>> GetDepartmentsPaymentAsync()
     {
+        const string cacheKey = "departments_payments";
         try
         {
+            var cached = await _redisCache.GetAsync<List<GetDepartmentPaymentsDto>>(cacheKey);
+            if (cached != null)
+            {
+                return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.OK, "Department payments retrieved successfully (from cache)!", cached);
+            }
+            
             var departments = await _departmentRepository.GetDepartmentsAsync();
+            
+            if (departments.Count == 0)
+            {
+                return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.NotFound, "No departments found.");
+            }
+
             var departmentWithPayments = departments.Select(d => new GetDepartmentPaymentsDto
             {
                 Id = d.Id,
@@ -191,15 +203,15 @@ public class DepartmentService : IDepartmentService
                     e.SalaryHistories.OrderByDescending(s => s.Month).Select(s => s.ExpectedTotal).FirstOrDefault())
             }).ToList();
 
-
-            return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.OK, departmentWithPayments);
+            await _redisCache.SetAsync(cacheKey, departmentWithPayments, TimeSpan.FromHours(4));
+            
+            return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.OK, "Department payments retrieved successfully!", departmentWithPayments);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in {MethodName}", nameof(GetDepartmentsSummaryAsync));
+            _logger.LogError(ex, "Error in {MethodName}", nameof(GetDepartmentsPaymentAsync)); 
             return new Response<List<GetDepartmentPaymentsDto>>(HttpStatusCode.InternalServerError, message: $"An error occurred: {ex.Message}");
         }
-        
     }
 
     public async Task<Response<GetDepartmentDto?>> GetDepartmentByIdAsync(int id)
