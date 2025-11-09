@@ -1,5 +1,7 @@
 using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports;
+using Clean.Application.Dtos.Reports.Employee;
 using Clean.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 
@@ -21,4 +23,15 @@ public interface IEmployeeRepository
 
     Task<bool> DeactivateEmployeeAsync(int id);
     Task<List<Employee>> GetActiveEmployeesByDepartmentAsync(int departmentId);
+
+    
+    /// <summary>
+    /// Retrieves a list of employee DTOs specifically tailored for reporting purposes.
+    /// </summary>
+    /// <param name="hiredAfter">Filter for employees hired on or after this date.</param>
+    /// <param name="hiredBefore">Filter for employees hired on or before this date.</param>
+    /// <param name="departmentId">Filter for department from which employee should be.</param>
+    /// <returns>A task that returns an IEnumerable of EmployeeDto.</returns>
+    Task<IEnumerable<EmployeeDto>> GetForReportAsync(DateTime? hiredAfter, DateTime? hiredBefore, int? departmentId);
+    
 }
