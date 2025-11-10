@@ -6,6 +6,8 @@ namespace Clean.Application.Abstractions;
 
 public interface IVacationRecordService
 {
+    Task AutoUpdateVacationStatusesAsync();
+    
     Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto);
     Task<PaginatedResponse<GetVacationRecordDto>> GetVacationRecordsAsync(VacationRecordPaginationFilter filter);
 
@@ -17,8 +19,10 @@ public interface IVacationRecordService
 
     Task<Response<string>> SendVacationRequestAsync(GetVacationRecordDto dto);
     
-    Task<Response<GetVacationRecordDto>> UpdateVacationRecordAsync(UpdateVacationRecordDto dto);
+    // Task<Response<VacationCheckDto>> UpdateVacationRecordAsync(UpdateVacationRecordDto dto);
 
+    Task<Response<bool>> CancelVacationRequestAsync(int vacationId);
+    
     Task<Response<bool>> DeleteVacationRecordAsync(int id);
 
     Task<Response<bool>> HrRespondToVacationRequest(VacationRecordHrResponseDto dto);

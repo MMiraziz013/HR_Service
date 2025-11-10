@@ -35,7 +35,8 @@ public class UserRepository : IUserRepository
             .ThenInclude(e => e!.Department)
             .Include(u=> u.Employee)
             .ThenInclude(e=> e!.SalaryHistories)
-            .FirstOrDefaultAsync(u => u.EmployeeId == employeeId);
+            .Where(u=> u.EmployeeId == employeeId)
+            .FirstOrDefaultAsync();
     }
 
     // 🔍 Now supports optional search
