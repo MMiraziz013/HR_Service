@@ -16,6 +16,7 @@ public class VacationRecordService : IVacationRecordService
     private readonly IDataContext _context;
     private readonly ICacheService _cacheService;
     private readonly ILogger<VacationRecordService> _logger;
+    private readonly IVacationBalanceRepository _vacationBalanceRepository;
     private readonly IEmailService _emailService;
 
     public VacationRecordService(
@@ -24,6 +25,7 @@ public class VacationRecordService : IVacationRecordService
         IDataContext context,
         ICacheService cacheService,
         ILogger<VacationRecordService> logger,
+        IVacationBalanceRepository vacationBalanceRepository,
         IEmailService emailService)
     {
         _vacationRecordRepository = vacationRecordRepository;
@@ -31,6 +33,7 @@ public class VacationRecordService : IVacationRecordService
         _context = context;
         _cacheService = cacheService;
         _logger = logger;
+        _vacationBalanceRepository = vacationBalanceRepository;
         _emailService = emailService;
     }
     
@@ -69,8 +72,11 @@ public class VacationRecordService : IVacationRecordService
     
     public async Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto)
     {
+        var daysCount = 0;
         try
         {
+            daysCount = await UpdateBalanceForNewVacationAsync(dto.EmployeeId, dto.StartDate, dto.EndDate);
+            
             var vacationToAdd = new Domain.Entities.VacationRecord
             {
                 EmployeeId = dto.EmployeeId,
@@ -85,6 +91,7 @@ public class VacationRecordService : IVacationRecordService
             var addedRecord = await _vacationRecordRepository.AddAsync(vacationToAdd);
             if (addedRecord is null)
             {
+                await RevertBalanceOnRollbackAsync(dto.EmployeeId, daysCount);
                 return new Response<GetVacationRecordDto>(HttpStatusCode.InternalServerError,
                     "Error while creating the new vacation record");
             }
@@ -121,9 +128,12 @@ public class VacationRecordService : IVacationRecordService
         }
         catch (Exception ex)
         {
+            if (daysCount > 0)
+            {
+                await RevertBalanceOnRollbackAsync(dto.EmployeeId, daysCount);
+            }
             _logger.LogError(ex, "Error while adding a new vacation record.");
-            return new Response<GetVacationRecordDto>(HttpStatusCode.InternalServerError, "Unexpected error occurred while adding vacation record.");
-        }
+            return new Response<GetVacationRecordDto>(HttpStatusCode.InternalServerError, "Unexpected error occurred while adding vacation record.");        }
     }
 
     public async Task<PaginatedResponse<GetVacationRecordDto>> GetVacationRecordsAsync(VacationRecordPaginationFilter filter)
@@ -211,6 +221,7 @@ public class VacationRecordService : IVacationRecordService
             var vacationRecords = await _vacationRecordRepository.GetAllBetweenDatesAsync(start, end);
 
             var summary = vacationRecords
+                .Where(vr=> vr.Status is VacationStatus.Approved or VacationStatus.Finished)
                 .GroupBy(v => new { v.StartDate.Year, v.StartDate.Month })
                 .Select(g => new VacationSummaryDto
                 {
@@ -251,55 +262,98 @@ public class VacationRecordService : IVacationRecordService
             return new Response<VacationCheckDto>(HttpStatusCode.InternalServerError, "Unexpected error occurred while checking vacation availability.");
         }
     }
-
-    public async Task<Response<string>> SendVacationRequestAsync(GetVacationRecordDto dto)
+    
+    public async Task<Response<string>> SubmitNewVacationRequestAsync(AddVacationRecordDto dto)
     {
+        var availabilityCheck = await CheckVacationAvailabilityAsync(
+            new RequestVacationDto
+            {
+                EmployeeId = dto.EmployeeId,
+                StartDate = dto.StartDate,
+                EndDate = dto.EndDate
+            });
+        
+        if (availabilityCheck.Data!.IsAvailable == false)
+        {
+            return new Response<string>(HttpStatusCode.BadRequest, availabilityCheck.Message); 
+        }
+        
+        var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
+        if (employee == null)
+        {
+             return new Response<string>(HttpStatusCode.NotFound, "Employee not found.");
+        }
+
+        var hrEmployees = await _employeeRepository.GetActiveEmployeesAsync();
+        var hrUsers = hrEmployees
+            .Where(e => e.User.Role == UserRole.HrManager && e.Position == EmployeePosition.Senior && e.IsActive)
+            .ToList();
+
+        if (hrUsers.Count == 0)
+        {
+            return new Response<string>(HttpStatusCode.NotFound, "No Senior HR employees found to process the request. Request not created.");
+        }
+        
+        GetVacationRecordDto addedVacationRequest = null!;
+        int daysDeducted = 0;
+        
         try
         {
-            // 1️⃣ Get the employee who made the request
-            var employee = await _employeeRepository.GetEmployeeByIdAsync(dto.EmployeeId);
-            if (employee == null)
+            var request = await AddVacationRecordAsync(dto);
+
+            if (request.Data is null || request.StatusCode != (int)HttpStatusCode.OK)
             {
-                return new Response<string>(HttpStatusCode.NotFound, "Employee not found.");
+                 return new Response<string>((HttpStatusCode)request.StatusCode, request.Message);
             }
+            
+            addedVacationRequest = request.Data;
+            daysDeducted = addedVacationRequest.DaysCount;
 
-            // 2️⃣ Get all HR + Senior employees
-            var hrEmployees = await _employeeRepository.GetActiveEmployeesAsync(); // adjust if you have a specific method
-            var hrUsers = hrEmployees
-                .Where(e => e.User.Role == UserRole.HrManager && e.Position == EmployeePosition.Senior && e.IsActive)
-                .ToList();
-
-            if (!hrUsers.Any())
-            {
-                return new Response<string>(HttpStatusCode.NotFound, "No HR employees with senior position found.");
-            }
-
-            // 3️⃣ Send email to each HR user
             foreach (var hrEmail in hrUsers.Select(hr => hr.User.Email))
             {
                 await _emailService.SendVacationRequestEmailAsync(
-                    vacationRequestId: dto.Id,
+                    vacationRequestId: addedVacationRequest.Id,
                     hrEmail: hrEmail!,
                     employeeName: $"{employee.FirstName} {employee.LastName}",
-                    fromDate: dto.StartDate,
-                    toDate: dto.EndDate
+                    payment: request.Data.PaymentAmount ?? 0,
+                    fromDate: addedVacationRequest.StartDate,
+                    toDate: addedVacationRequest.EndDate
                 );
             }
-
-            return new Response<string>(HttpStatusCode.OK, "Vacation request email(s) sent successfully.");
+            
+            return new Response<string>(HttpStatusCode.OK, "Vacation request successfully created and email notification(s) sent.");
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "Postmark API error while sending vacation request email.");
-            return new Response<string>(HttpStatusCode.BadGateway, "Email service connection failed.");
+            if (addedVacationRequest != null)
+            {
+                await RevertBalanceOnRollbackAsync(dto.EmployeeId, daysDeducted);
+                
+                await _vacationRecordRepository.Delete(addedVacationRequest.Id);
+                await InvalidateVacationRecordListsCache();
+                
+                _logger.LogWarning("Email service failed. Vacation Request ID {Id} and balance update were rolled back (deleted).", addedVacationRequest.Id);
+            }
+            
+            _logger.LogError(ex, "Postmark API error: Failed to send email, request rolled back.");
+            
+            return new Response<string>(HttpStatusCode.BadGateway, "Email notification service failed. Request was not created and balance reverted.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error while sending vacation request email.");
-            return new Response<string>(HttpStatusCode.InternalServerError, "Unexpected error occurred while sending vacation request.");
+            if (addedVacationRequest != null && daysDeducted > 0)
+            {
+                await RevertBalanceOnRollbackAsync(dto.EmployeeId, daysDeducted);
+                await _vacationRecordRepository.Delete(addedVacationRequest.Id);
+                await InvalidateVacationRecordListsCache();
+                _logger.LogWarning("General error after creation. Vacation Request ID {Id} and balance update were rolled back.", addedVacationRequest.Id);
+            }
+            
+            _logger.LogError(ex, "Error during the vacation request submission workflow.");
+            return new Response<string>(HttpStatusCode.InternalServerError, "Unexpected error occurred while submitting the vacation request.");
         }
     }
-
+    
     public async Task<Response<bool>> CancelVacationRequestAsync(int vacationId)
     {
         try
@@ -413,11 +467,22 @@ public class VacationRecordService : IVacationRecordService
     {
         try
         {
+            var recordToDelete = await _vacationRecordRepository.GetByIdAsync(id);
+            if (recordToDelete is null)
+            {
+                return new Response<bool>(HttpStatusCode.NotFound, "No such record to delete");
+            }
+            
+            var employeeId = recordToDelete.EmployeeId;
+            var daysCount = recordToDelete.DaysCount;
+
             var isDeleted = await _vacationRecordRepository.Delete(id);
             if (isDeleted == false)
             {
                 return new Response<bool>(HttpStatusCode.NotFound, "No such record to delete");
             }
+
+            await RevertBalanceOnRollbackAsync(employeeId, daysCount); // <--- ADDED LINE
 
             await _cacheService.RemoveAsync($"vacation_record_{id}");
             await InvalidateVacationRecordListsCache();
@@ -468,6 +533,8 @@ public class VacationRecordService : IVacationRecordService
                     shouldInvalidate = true;
                     await _vacationRecordRepository.UpdateAsync(vacationRequest);
 
+                    await RevertBalanceOnRollbackAsync(vacationRequest.EmployeeId, vacationRequest.DaysCount);
+                
                     if (shouldInvalidate)
                     {
                         await _cacheService.RemoveAsync($"vacation_record_{vacationRequest.Id}");
@@ -498,6 +565,39 @@ public class VacationRecordService : IVacationRecordService
         }
     }
 
+    private async Task<int> UpdateBalanceForNewVacationAsync(int employeeId, DateOnly startDate, DateOnly endDate)
+    {
+        var balance = await _vacationBalanceRepository.GetVacationBalanceByEmployeeIdAsync(employeeId);
+        if (balance == null)
+        {
+            throw new InvalidOperationException($"Vacation balance record not found for employee {employeeId}.");
+        }
+    
+        var daysCount = (endDate.ToDateTime(TimeOnly.MinValue) - startDate.ToDateTime(TimeOnly.MinValue)).Days + 1;
+    
+        balance.UsedDays += daysCount;
+        await _vacationBalanceRepository.UpdateVacationBalanceAsync(balance);
+    
+        return daysCount;
+    }
+
+    /// <summary>
+    /// Reverts the vacation days to the employee's balance (used for rollback/rejection/deletion).
+    /// </summary>
+    private async Task RevertBalanceOnRollbackAsync(int employeeId, int daysCount)
+    {
+        var balance = await _vacationBalanceRepository.GetVacationBalanceByEmployeeIdAsync(employeeId);
+        if (balance == null)
+        {
+            _logger.LogError("Cannot revert vacation days. Balance not found for employee {Id}.", employeeId);
+            return;
+        }
+
+        balance.UsedDays = Math.Max(0, balance.UsedDays - daysCount);
+        await _vacationBalanceRepository.UpdateVacationBalanceAsync(balance);
+        _logger.LogInformation("Vacation balance for employee {Id} reverted by {Days} days.", employeeId, daysCount);
+    }
+    
     private async Task InvalidateVacationRecordListsCache()
     {
         try

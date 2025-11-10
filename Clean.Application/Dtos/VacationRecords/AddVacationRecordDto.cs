@@ -13,6 +13,5 @@ public class AddVacationRecordDto
     //TODO: Check late if we need more details vacation type (subtype)
     //public VacationSubtype Subtype { get; set; } // e.g. Regular, Maternity, Sick, Unpaid
 
-    public decimal? PaymentAmount { get; set; }
     public string? ManagerComment { get; set; }  // Optional HR feedback
 }

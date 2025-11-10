@@ -21,6 +21,7 @@ public class PostmarkEmailService : IEmailService
         int vacationRequestId,
         string hrEmail,
         string employeeName,
+        decimal payment,
         string fromDate,
         string toDate
     )
@@ -34,6 +35,7 @@ public class PostmarkEmailService : IEmailService
         var body = $@"
                 <h3>New Vacation Request</h3>
                 <p><b>{employeeName}</b> requested vacation from <b>{fromDate}</b> to <b>{toDate}</b>.</p>
+                <p>Estimated Payment Amount: <b>{payment:C}</b></p>
                 <a href='{approveUrl}' 
                    style='background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;'>
                    ✅ Accept
@@ -45,6 +47,7 @@ public class PostmarkEmailService : IEmailService
                 </a>";
         
         var fromEmail = _configuration["EmailSettings:FromEmail"];
+        var messageStream = _configuration["EmailSettings:MessageStream"]; 
 
         var payload = new
         {
@@ -52,7 +55,7 @@ public class PostmarkEmailService : IEmailService
             To = hrEmail,
             Subject = subject,
             HtmlBody = body,
-            MessageStream = "notifications"
+            MessageStream = messageStream 
         };
 
         var json = JsonSerializer.Serialize(payload);

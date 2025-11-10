@@ -86,11 +86,30 @@ public class VacationBalanceRepository : IVacationBalanceRepository
         return toUpdate;
     }
 
+    // public async Task<int> GetEmployeeRemainingDaysAsync(int employeeId)
+    // {
+    //     var days = await _context.VacationBalances
+    //         .Where(vb => vb.EmployeeId == employeeId)
+    //         .Select(vb => vb.RemainingDays)
+    //         .FirstOrDefaultAsync();
+    //     return days;
+    // }
+
+    public async Task<VacationBalance?> GetVacationBalanceByEmployeeIdAsync(int employeeId)
+    {
+        var balance = await _context.VacationBalances
+            .Where(vb => vb.EmployeeId == employeeId)
+            .Include(vb => vb.Employee)
+            .OrderByDescending(vb => vb.PeriodEnd)
+            .FirstOrDefaultAsync();
+
+        return balance;
+    }
+
     public async Task<bool> ExistsAsync(int employeeId, int year)
     {
         return await _context.VacationBalances
             .AnyAsync(v => v.EmployeeId == employeeId && v.Year == year);
-
     }
 
     //TODO: Check later if we need delete method for VacationBalance
