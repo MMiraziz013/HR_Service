@@ -316,6 +316,7 @@ public class SalaryAnomalyService : ISalaryAnomalyService
         
         var mapped = anomalies.Select(h => new SalaryAnomalyListDto
         {
+            Id=h.Id,
           FullName =$"{h.Employee.FirstName} {h.Employee.LastName}",
           Month = h.Month,
           Deviation = h.DeviationPercent,
