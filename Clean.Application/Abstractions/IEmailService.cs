@@ -6,6 +6,7 @@ public interface IEmailService
         int vacationRequestId, 
         string hrEmail, 
         string employeeName, 
+        decimal payment,
         string fromDate, 
         string toDate
     );

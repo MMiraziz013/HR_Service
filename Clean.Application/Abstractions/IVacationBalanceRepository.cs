@@ -15,4 +15,8 @@ public interface IVacationBalanceRepository
     Task<VacationBalance?> UpdateVacationBalanceAsync(VacationBalance dto);
     
     Task<bool> ExistsAsync(int employeeId, int year);
+
+    // Task<int> GetEmployeeRemainingDaysAsync(int employeeId);
+
+    Task<VacationBalance?> GetVacationBalanceByEmployeeIdAsync(int employeeId);
 }

@@ -17,7 +17,7 @@ public interface IVacationRecordService
     
     Task<Response<VacationCheckDto>> CheckVacationAvailabilityAsync(RequestVacationDto dto);
 
-    Task<Response<string>> SendVacationRequestAsync(GetVacationRecordDto dto);
+    Task<Response<string>> SubmitNewVacationRequestAsync(AddVacationRecordDto dto);
     
     // Task<Response<VacationCheckDto>> UpdateVacationRecordAsync(UpdateVacationRecordDto dto);
 

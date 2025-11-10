@@ -235,7 +235,7 @@ public class UserService : IUserService
 
     public async Task<Response<UserProfileDto>> GetUserProfileAsync(int userId)
     {
-                try
+        try
         {
             var cacheKey = $"user_profile_{userId}";
             var cached = await _cacheService.GetAsync<UserProfileDto>(cacheKey);
