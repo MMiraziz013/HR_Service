@@ -61,12 +61,18 @@ public class ReportsController : ControllerBase
             fileDownloadName: report.FileName
         );
     }
-    
+
     [HttpGet("anomalies")]
     [PermissionAuthorize(PermissionConstants.Employees.ManageAll)]
     public async Task<IActionResult> DownloadSalaryAnomalyReport([FromQuery] SalaryAnomalyFilter filter)
     {
         var report = await _reportsService.GenerateSalaryAnomalyReportAsync(filter);
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+        );
+    }
 
     [HttpGet("departments")]
     [PermissionAuthorize(PermissionConstants.Departments.Manage)]
