@@ -147,49 +147,43 @@ public class ReportsService : IReportsService
         return new ReportResult(csvBytes, "text/csv", fileName, csvBytes.Length);
     }
 
-    // Your existing GenerateCsv method remains the same
     private byte[] GenerateCsv<T>(IEnumerable<T> data)
     {
         using var ms = new MemoryStream();
-        using var sw = new StreamWriter(ms, Encoding.UTF8, leaveOpen: true); 
-    
-        // Create CsvConfiguration
+
+        using var sw = new StreamWriter(ms, Encoding.UTF8, leaveOpen: true);
+        
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.GetCultureInfo("en-US"));
     
-        // IMPORTANT: To specifically enforce **USD $** formatting, use the "en-US" culture.
-        // The "C" (currency) format string will now use the US Dollar symbol.
-
         using var csv = new CsvWriter(sw, config);
 
-        // Register the custom map for EmployeeDto (only if T is EmployeeDto)
-        if (typeof(T) == typeof(EmployeeDto))
+        Type dataType = typeof(T);
+
+        if (dataType == typeof(EmployeeDto))
         {
             csv.Context.RegisterClassMap<EmployeeDtoMap>();
         }
-        
-        else if (typeof(T) == typeof(PayrollReportDto))
+        else if (dataType == typeof(PayrollReportDto))
         {
             csv.Context.RegisterClassMap<PayrollReportDtoMap>();
         }
-        else if (typeof(T) == typeof(SalaryHistoryDto))
+        else if (dataType == typeof(SalaryHistoryDto))
         {
-            csv.Context.RegisterClassMap<SalaryDtoMap>(); 
+            csv.Context.RegisterClassMap<SalaryDtoMap>();
         }
-        else if (typeof(T) == typeof(SalaryAnomalyDto))
+        else if (dataType == typeof(SalaryAnomalyDto))
         {
-            csv.Context.RegisterClassMap<AnomalyMapDto>(); 
-
-        if (typeof(T) == typeof(DepartmentDto))
+            csv.Context.RegisterClassMap<AnomalyMapDto>();
+        }
+        else if (dataType == typeof(DepartmentDto))
         {
             csv.Context.RegisterClassMap<DepartmentDtoMap>();
         }
-    
+        
         csv.WriteRecords(data);
-        sw.Flush(); 
-        ms.Position = 0; 
-    
-        return ms.ToArray();
+        sw.Flush();
+        ms.Position = 0;
+
+        return ms.ToArray(); 
     }
-    
-    
 }
