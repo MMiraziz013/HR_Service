@@ -1,4 +1,5 @@
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Domain.Entities;
 
 namespace Clean.Application.Abstractions;
@@ -20,8 +21,9 @@ public interface IPayrollRecordRepository
 
     Task<PayrollRecord?> GetPayrollByMonthAsync(int employeeId, DateOnly month);
     Task<List<PayrollRecord>> GetPayrollRecordsByMonthAsync(int year, int month);
-
-    // Task<decimal> GetPositionActualAverageAsync(int departmentId, string position);
-    // Task<decimal> GetDepartmentActualAverageAsync(int departmentId);
     Task<List<PayrollRecord>> GetPayrollRecordsAsync(DateTime startMonth, DateTime endMonth);
+    
+    
+    Task<IEnumerable<PayrollReportDto>> GetForReportAsync(int? employeeId, DateOnly? startDate,
+        DateOnly? endDate, int? departmentId);
 }

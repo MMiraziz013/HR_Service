@@ -1,5 +1,6 @@
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.SalaryHistory;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -52,7 +53,51 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
             .Where(s => s.Month.Month == month.Month
                         && s.Month.Year == month.Year).ToListAsync();
     }
-    
+
+    public async Task<IEnumerable<SalaryHistoryDto>> GetForReportAsync(int? employeeId, int? departmentId, DateOnly? fromMonth,
+        DateOnly? toMonth)
+    {
+        IQueryable<SalaryHistory> query = _context.SalaryHistories
+            .Include(e => e.Employee)
+            .Include(e => e.Employee.Department)
+            .OrderBy(e => e.Id);
+
+        if (employeeId.HasValue)
+        {
+            query = query.Where(e => e.EmployeeId == employeeId);
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(e => e.Employee.DepartmentId == departmentId);
+        }
+
+        if (fromMonth.HasValue)
+        {
+            query = query.Where(e => e.Month >= fromMonth);
+        }
+
+        if (toMonth.HasValue)
+        {
+            query = query.Where(e => e.Month <= toMonth);
+        }
+
+        var histories = await query
+            .Select(e => new SalaryHistoryDto
+            {
+                Id = e.Id,
+                BaseAmount = e.BaseAmount,
+                BonusAmount = e.BonusAmount,
+                DepartmentId = e.Employee.DepartmentId,
+                DepartmentName = e.Employee.Department.Name,
+                EmployeeId = e.EmployeeId,
+                EmployeeName = $"{e.Employee.FirstName} {e.Employee.LastName}",
+                ExpectedTotal = e.ExpectedTotal,
+                Month = e.Month
+            }).ToListAsync();
+
+        return histories;
+    }
     public async Task<List<SalaryHistory>> GetSalaryHistoriesAsync(SalaryHistoryFilter filter)
     {
         var list = _context.SalaryHistories

@@ -1,8 +1,12 @@
+
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Reports;
 using Clean.Application.Dtos.Reports.Department;
 using Clean.Application.Dtos.Reports.Employee;
+using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.SalaryAnomaly;
+using Clean.Application.Dtos.Reports.SalaryHistory;
 
 namespace Clean.Application.Services.Reports;
 
@@ -17,16 +21,16 @@ public class ReportsService : IReportsService
     private readonly IEmployeeRepository _employeeRepository;
     private readonly IDepartmentRepository _departmentRepository;
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
-
-
-    public ReportsService(
-        IEmployeeRepository employeeRepository,
-        IDepartmentRepository departmentRepository,
-        ISalaryHistoryRepository salaryHistoryRepository)
+    private readonly IPayrollRecordRepository _payrollRepository;
+    private readonly ISalaryAnomalyRepository _salaryAnomalyRepository;
+    public ReportsService(IEmployeeRepository employeeRepository, IDepartmentRepository departmentRepository,
+    ISalaryHistoryRepository salaryHistoryRepository,IPayrollRecordRepository payrollRepository,ISalaryAnomalyRepository salaryAnomalyRepository)
     {
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
+        _payrollRepository = payrollRepository;
+        _salaryAnomalyRepository = salaryAnomalyRepository;
     }
     
     public async Task<ReportResult> GenerateEmployeeReportAsync(EmployeeReportFilter filter)
@@ -45,6 +49,50 @@ public class ReportsService : IReportsService
         };
     }
 
+    public async Task<ReportResult> GeneratePayrollReportAsync(PayrollReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var payrolls = await _payrollRepository.GetForReportAsync(filter.EmployeeId, filter.StartPeriod,
+            filter.EndPeriod, filter.DepartmentId);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(payrolls, "payrolls"),
+            "csv" => GenerateCsvReport(payrolls, "payrolls"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
+    }
+    public async Task<ReportResult> GenerateSalaryAnomalyReportAsync(SalaryAnomalyFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var anomalies = await _salaryAnomalyRepository.GetForReportAsync(filter.EmployeeId,filter.DepartmentId,filter.FromMonth,filter.ToMonth,filter.IsReviewed);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(anomalies, "salary anomalies"),
+            "csv" => GenerateCsvReport(anomalies, "salary anomalies"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
+    }
+    
+    public async Task<ReportResult> GenerateSalaryHistoryReportAsync(SalaryFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var salaries = await _salaryHistoryRepository.GetForReportAsync(filter.EmployeeId,filter.DepartmentId,filter.FromMonth,filter.ToMonth);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(salaries, "salaries"),
+            "csv" => GenerateCsvReport(salaries, "salaries"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
+    }
     public async Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter)
     {
         var format = (filter.Format ?? "json").ToLowerInvariant();
@@ -118,6 +166,18 @@ public class ReportsService : IReportsService
         {
             csv.Context.RegisterClassMap<EmployeeDtoMap>();
         }
+        
+        else if (typeof(T) == typeof(PayrollReportDto))
+        {
+            csv.Context.RegisterClassMap<PayrollReportDtoMap>();
+        }
+        else if (typeof(T) == typeof(SalaryHistoryDto))
+        {
+            csv.Context.RegisterClassMap<SalaryDtoMap>(); 
+        }
+        else if (typeof(T) == typeof(SalaryAnomalyDto))
+        {
+            csv.Context.RegisterClassMap<AnomalyMapDto>(); 
 
         if (typeof(T) == typeof(DepartmentDto))
         {

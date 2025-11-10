@@ -1,3 +1,4 @@
+using Clean.Application.Dtos.Reports.SalaryAnomaly;
 using Clean.Domain.Entities;
 
 namespace Clean.Application.Abstractions;
@@ -13,4 +14,6 @@ public interface ISalaryAnomalyRepository
       Task<bool> ExistsForEmployeeAndMonthAsync(int employeeId, DateOnly month);
       Task<bool> UpdateAsync(SalaryAnomaly salary);
       Task<bool> DeleteAnomalyAsync(int id);
+      Task<IEnumerable<SalaryAnomalyDto>> GetForReportAsync(int? employeeId, int? departmentId,
+          DateOnly? fromMonth, DateOnly? toMonth,bool? isViewed);
 }
