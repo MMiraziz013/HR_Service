@@ -24,9 +24,22 @@ public class ReportsController : ControllerBase
     /// <param name="filter">The filter criteria, including the Format parameter.</param>
     [HttpGet("employees")]
     [PermissionAuthorize(PermissionConstants.Employees.ManageAll)]
-    public async Task<IActionResult> DownloadEmployeeReport([FromQuery] EmployeeReportFilter filter)
+    public async Task<IActionResult> DownloadEmployeeReportAsync([FromQuery] EmployeeReportFilter filter)
     {
         var report = await _reportsService.GenerateEmployeeReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+        );
+    }
+
+    [HttpGet("departments")]
+    [PermissionAuthorize(PermissionConstants.Departments.Manage)]
+    public async Task<IActionResult> DownloadDepartmentReportAsync([FromQuery] DepartmentReportFilter filter)
+    {
+        var report = await _reportsService.GenerateDepartmentReportAsync(filter);
 
         return File(
             fileContents: report.Content,

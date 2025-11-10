@@ -1,3 +1,4 @@
+using Clean.Application.Dtos.Reports.Department;
 using Clean.Domain.Entities;
 
 namespace Clean.Application.Abstractions;
@@ -11,4 +12,6 @@ public interface IDepartmentRepository
     Task<bool> DeleteDepartmentAsync(int id);
 
     Task<Department?> GetDepartmentByNameAsync(string name);
+
+    Task<List<DepartmentDto>> GetDepartmentReportAsync(string? name, int? minEmployeeCount);
 }

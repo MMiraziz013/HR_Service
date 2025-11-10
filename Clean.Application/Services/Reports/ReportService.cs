@@ -1,5 +1,6 @@
 using Clean.Application.Dtos.Filters;
 using Clean.Application.Dtos.Reports;
+using Clean.Application.Dtos.Reports.Department;
 using Clean.Application.Dtos.Reports.Employee;
 using Clean.Application.Dtos.Reports.ReportFilters;
 
@@ -14,13 +15,17 @@ using Abstractions;
 public class ReportsService : IReportsService
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IDepartmentRepository _departmentRepository;
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
 
 
-    public ReportsService(IEmployeeRepository employeeRepository,
-    ISalaryHistoryRepository salaryHistoryRepository)
+    public ReportsService(
+        IEmployeeRepository employeeRepository,
+        IDepartmentRepository departmentRepository,
+        ISalaryHistoryRepository salaryHistoryRepository)
     {
         _employeeRepository = employeeRepository;
+        _departmentRepository = departmentRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
     }
     
@@ -39,6 +44,21 @@ public class ReportsService : IReportsService
             _ => throw new NotSupportedException($"Report format '{format}' is not supported."),
         };
     }
+
+    public async Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var departments = await _departmentRepository.GetDepartmentReportAsync(filter.Name, filter.MinEmployeeCount);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(departments, "departments"),
+            "csv" => GenerateCsvReport(departments, "departments"),
+
+            _ => throw new NotSupportedException($"Report format '{format}' is not supported.")
+        };
+    }
+
 
     // private ReportResult GenerateExcelCompatibilityReport<T>(IEnumerable<T> data, string baseFileName)
     // {
@@ -97,6 +117,11 @@ public class ReportsService : IReportsService
         if (typeof(T) == typeof(EmployeeDto))
         {
             csv.Context.RegisterClassMap<EmployeeDtoMap>();
+        }
+
+        if (typeof(T) == typeof(DepartmentDto))
+        {
+            csv.Context.RegisterClassMap<DepartmentDtoMap>();
         }
     
         csv.WriteRecords(data);
