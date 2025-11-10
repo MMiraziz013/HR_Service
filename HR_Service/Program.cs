@@ -187,7 +187,7 @@ public static class Program
             q.AddTrigger(opts => opts
                 .ForJob(jobKey)
                 .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
-                    .InTimeZone(TimeZoneInfo.Utc))
+                    .InTimeZone(TimeZoneInfo.Utc)));
             // ---
 
             var recordJobKey = new JobKey("VacationRecordJob");
