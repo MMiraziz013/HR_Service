@@ -11,6 +11,7 @@ public interface IReportsService
     /// </summary>
     Task<ReportResult> GenerateEmployeeReportAsync(EmployeeReportFilter filter);
 
+    Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter);
 
 }
 
