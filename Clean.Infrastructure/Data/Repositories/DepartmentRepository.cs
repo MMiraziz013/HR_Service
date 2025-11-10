@@ -1,4 +1,5 @@
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Reports.Department;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -82,5 +83,33 @@ public class DepartmentRepository : IDepartmentRepository
     {
         return await _context.Departments
             .FirstOrDefaultAsync(d => EF.Functions.ILike(d.Name!, $"%{name}%"));
+    }
+
+    public async Task<List<DepartmentDto>> GetDepartmentReportAsync(string? name, int? minEmployeeCount)
+    {
+        var query = _context.Departments
+            .AsQueryable();
+
+        if (string.IsNullOrWhiteSpace(name) == false)
+        {
+            query = query.Where(d => d.Name.ToLower() == name.ToLower());
+        }
+
+        if (minEmployeeCount.HasValue)
+        {
+            query = query.Where(d => d.Employees.Count >= minEmployeeCount);
+        }
+
+
+        var departments = await query.OrderBy(d => d.Id).Include(department => department.Employees).ToListAsync();
+        var list = departments.Select(d => new DepartmentDto
+        {
+            DepartmentId = d.Id,
+            Name = d.Name,
+            EmployeeCount = d.Employees.Count,
+            Description = d.Description
+        }).ToList();
+
+        return list;
     }
 }

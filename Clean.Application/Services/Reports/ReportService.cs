@@ -1,4 +1,7 @@
 
+using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports;
+using Clean.Application.Dtos.Reports.Department;
 using Clean.Application.Dtos.Reports.Employee;
 using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Application.Dtos.Reports.ReportFilters;
@@ -16,13 +19,15 @@ using Abstractions;
 public class ReportsService : IReportsService
 {
     private readonly IEmployeeRepository _employeeRepository;
+    private readonly IDepartmentRepository _departmentRepository;
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
     private readonly IPayrollRecordRepository _payrollRepository;
     private readonly ISalaryAnomalyRepository _salaryAnomalyRepository;
-    public ReportsService(IEmployeeRepository employeeRepository,
+    public ReportsService(IEmployeeRepository employeeRepository, IDepartmentRepository departmentRepository,
     ISalaryHistoryRepository salaryHistoryRepository,IPayrollRecordRepository payrollRepository,ISalaryAnomalyRepository salaryAnomalyRepository)
     {
         _employeeRepository = employeeRepository;
+        _departmentRepository = departmentRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
         _payrollRepository = payrollRepository;
         _salaryAnomalyRepository = salaryAnomalyRepository;
@@ -88,6 +93,20 @@ public class ReportsService : IReportsService
         };
 
     }
+    public async Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var departments = await _departmentRepository.GetDepartmentReportAsync(filter.Name, filter.MinEmployeeCount);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(departments, "departments"),
+            "csv" => GenerateCsvReport(departments, "departments"),
+
+            _ => throw new NotSupportedException($"Report format '{format}' is not supported.")
+        };
+    }
+
 
     // private ReportResult GenerateExcelCompatibilityReport<T>(IEnumerable<T> data, string baseFileName)
     // {
@@ -104,6 +123,10 @@ public class ReportsService : IReportsService
     //      */
     // }
 
+    
+    
+    
+    
     private static ReportResult GenerateJsonReport<T>(IEnumerable<T> data, string baseFileName)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
@@ -155,6 +178,10 @@ public class ReportsService : IReportsService
         else if (typeof(T) == typeof(SalaryAnomalyDto))
         {
             csv.Context.RegisterClassMap<AnomalyMapDto>(); 
+
+        if (typeof(T) == typeof(DepartmentDto))
+        {
+            csv.Context.RegisterClassMap<DepartmentDtoMap>();
         }
     
         csv.WriteRecords(data);

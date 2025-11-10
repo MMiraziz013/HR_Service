@@ -14,6 +14,8 @@ public interface IReportsService
     Task<ReportResult> GenerateSalaryHistoryReportAsync(SalaryFilter filter);
     Task<ReportResult> GenerateSalaryAnomalyReportAsync(SalaryAnomalyFilter filter);
 
+    Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter);
+
 }
 
 public record ReportResult(byte[] Content, string ContentType, string FileName, long? ContentLength = null);
