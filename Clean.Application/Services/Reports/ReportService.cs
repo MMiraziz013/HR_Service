@@ -1,7 +1,9 @@
-using Clean.Application.Dtos.Filters;
-using Clean.Application.Dtos.Reports;
+
 using Clean.Application.Dtos.Reports.Employee;
+using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.SalaryAnomaly;
+using Clean.Application.Dtos.Reports.SalaryHistory;
 
 namespace Clean.Application.Services.Reports;
 
@@ -15,13 +17,15 @@ public class ReportsService : IReportsService
 {
     private readonly IEmployeeRepository _employeeRepository;
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
-
-
+    private readonly IPayrollRecordRepository _payrollRepository;
+    private readonly ISalaryAnomalyRepository _salaryAnomalyRepository;
     public ReportsService(IEmployeeRepository employeeRepository,
-    ISalaryHistoryRepository salaryHistoryRepository)
+    ISalaryHistoryRepository salaryHistoryRepository,IPayrollRecordRepository payrollRepository,ISalaryAnomalyRepository salaryAnomalyRepository)
     {
         _employeeRepository = employeeRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
+        _payrollRepository = payrollRepository;
+        _salaryAnomalyRepository = salaryAnomalyRepository;
     }
     
     public async Task<ReportResult> GenerateEmployeeReportAsync(EmployeeReportFilter filter)
@@ -38,6 +42,51 @@ public class ReportsService : IReportsService
         
             _ => throw new NotSupportedException($"Report format '{format}' is not supported."),
         };
+    }
+
+    public async Task<ReportResult> GeneratePayrollReportAsync(PayrollReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var payrolls = await _payrollRepository.GetForReportAsync(filter.EmployeeId, filter.StartPeriod,
+            filter.EndPeriod, filter.DepartmentId);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(payrolls, "payrolls"),
+            "csv" => GenerateCsvReport(payrolls, "payrolls"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
+    }
+    public async Task<ReportResult> GenerateSalaryAnomalyReportAsync(SalaryAnomalyFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var anomalies = await _salaryAnomalyRepository.GetForReportAsync(filter.EmployeeId,filter.DepartmentId,filter.FromMonth,filter.ToMonth,filter.IsReviewed);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(anomalies, "salary anomalies"),
+            "csv" => GenerateCsvReport(anomalies, "salary anomalies"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
+    }
+    
+    public async Task<ReportResult> GenerateSalaryHistoryReportAsync(SalaryFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var salaries = await _salaryHistoryRepository.GetForReportAsync(filter.EmployeeId,filter.DepartmentId,filter.FromMonth,filter.ToMonth);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(salaries, "salaries"),
+            "csv" => GenerateCsvReport(salaries, "salaries"),
+            
+            _ => throw new NotSupportedException($"Report format '{format} is not supported.")
+        };
+
     }
 
     // private ReportResult GenerateExcelCompatibilityReport<T>(IEnumerable<T> data, string baseFileName)
@@ -93,6 +142,19 @@ public class ReportsService : IReportsService
         if (typeof(T) == typeof(EmployeeDto))
         {
             csv.Context.RegisterClassMap<EmployeeDtoMap>();
+        }
+        
+        else if (typeof(T) == typeof(PayrollReportDto))
+        {
+            csv.Context.RegisterClassMap<PayrollReportDtoMap>();
+        }
+        else if (typeof(T) == typeof(SalaryHistoryDto))
+        {
+            csv.Context.RegisterClassMap<SalaryDtoMap>(); 
+        }
+        else if (typeof(T) == typeof(SalaryAnomalyDto))
+        {
+            csv.Context.RegisterClassMap<AnomalyMapDto>(); 
         }
     
         csv.WriteRecords(data);

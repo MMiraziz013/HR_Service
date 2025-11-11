@@ -1,4 +1,5 @@
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.SalaryHistory;
 using Clean.Application.Dtos.SalaryHistory;
 using Clean.Domain.Entities;
 
@@ -18,10 +19,9 @@ public interface ISalaryHistoryRepository
       Task<decimal> GetDepartmentAverageSalaryAsync(int departmentId);
       Task<List<SalaryHistory?>> GetLatestSalaryHistoriesAsync();
       Task<bool> UpdateSalaryAsync(SalaryHistory salary);
-      
-      // Task<decimal> GetTotalPaidAmountAsync(int employeeId, DateTime startDate, DateTime endDate);
-      // Task<bool> DeleteAsync(int id);
-      // Task<List<SalaryHistory>> GetSalaryHistoryByEmailAsync(string email);
 
+      Task<IEnumerable<SalaryHistoryDto>> GetForReportAsync(int? employeeId, int? departmentId, DateOnly? fromMonth,
+          DateOnly? toMonth);
+    
 
 }

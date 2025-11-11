@@ -1,0 +1,22 @@
+using CsvHelper.Configuration;
+
+namespace Clean.Application.Dtos.Reports.SalaryHistory;
+
+public sealed class SalaryDtoMap : ClassMap<SalaryHistoryDto>
+{
+    public SalaryDtoMap()
+    {
+        Map(m => m.Id).Name("Salary History ID");
+        Map(m => m.EmployeeId).Name("Employee ID");
+        Map(m => m.EmployeeName).Name("Employee Name");
+         Map(m => m.BaseAmount)
+            .TypeConverterOption.Format("C");
+        Map(m => m.BonusAmount)
+            .TypeConverterOption.Format("C");
+        Map(m => m.Month).Name("Month").TypeConverterOption.Format("yyyy-MM-dd");
+        Map(m => m.ExpectedTotal)
+            .TypeConverterOption.Format("C");
+        Map(m => m.DepartmentId).Name("Department ID");
+        Map(m => m.DepartmentName).Name("Department Name");
+    }
+}

@@ -10,7 +10,9 @@ public interface IReportsService
     /// Generate a report for employees in specified format. Returns a file payload (bytes).
     /// </summary>
     Task<ReportResult> GenerateEmployeeReportAsync(EmployeeReportFilter filter);
-
+    Task<ReportResult> GeneratePayrollReportAsync(PayrollReportFilter filter);
+    Task<ReportResult> GenerateSalaryHistoryReportAsync(SalaryFilter filter);
+    Task<ReportResult> GenerateSalaryAnomalyReportAsync(SalaryAnomalyFilter filter);
 
 }
 

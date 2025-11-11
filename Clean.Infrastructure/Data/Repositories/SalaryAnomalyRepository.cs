@@ -1,4 +1,5 @@
 using Clean.Application.Abstractions;
+using Clean.Application.Dtos.Reports.SalaryAnomaly;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +28,57 @@ public class SalaryAnomalyRepository : ISalaryAnomalyRepository
         return query.ToListAsync();
     }
 
+    public async Task<IEnumerable<SalaryAnomalyDto>> GetForReportAsync(int? employeeId, int? departmentId,
+        DateOnly? fromMonth, DateOnly? toMonth,bool? isViewed)
+    {
+        IQueryable<SalaryAnomaly> query =  _context.SalaryAnomalies
+            .Include(e => e.Employee)
+            .Include(e => e.Employee.Department)
+            .OrderBy(e => e.Id);
+
+        if (employeeId.HasValue)
+        {
+            query = query.Where(e => e.EmployeeId == employeeId);
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(e => e.Employee.DepartmentId == departmentId);
+        }
+
+        if (fromMonth.HasValue)
+        {
+            query = query.Where(e => e.Month >= fromMonth);
+        }
+
+        if (toMonth.HasValue)
+        {
+            query = query.Where(e => e.Month <= toMonth);
+        }
+
+        if (isViewed.HasValue)
+        {
+            query = query.Where(e => e.IsReviewed == isViewed);
+        }
+
+        var anomalies = await query
+            .Select(e => new SalaryAnomalyDto
+            {
+                Id = e.Id,
+                Month = default,
+                ActualAmount = e.ActualAmount,
+                DepartmentId = e.Employee.DepartmentId,
+                DepartmentName = e.Employee.Department.Name,
+                DeviationPercent = e.DeviationPercent,
+                EmployeeId = e.EmployeeId,
+                EmployeeName = $"{e.Employee.FirstName} {e.Employee.LastName}",
+                ExpectedAmount = e.ExpectedAmount,
+                IsReviewed = e.IsReviewed,
+                ReviewComment = e.ReviewComment ?? ""
+            }).ToListAsync();
+
+        return anomalies;
+    }
     public async Task<List<SalaryAnomaly>> GetByEmployeeIdAsync(int employeeId)
     {
         var anomalies= _context.SalaryAnomalies

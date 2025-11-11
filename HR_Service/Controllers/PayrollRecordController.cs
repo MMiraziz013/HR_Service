@@ -25,7 +25,7 @@ public class PayrollRecordController : ControllerBase
     // }
 
     [HttpGet("get-all")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
+    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
     public async Task<IActionResult> GetAll()
     {
         var response = await _payrollRecordService.GetAllPayrollRecordsAsync();
@@ -33,7 +33,7 @@ public class PayrollRecordController : ControllerBase
     }
    
     [HttpGet("get-by-id")]
-    [PermissionAuthorize(PermissionConstants.PayrollRecords.View)]
+    [PermissionAuthorize(PermissionConstants.PayrollRecords.Manage)]
     public async Task<IActionResult> GetById([FromQuery] int id)
     {
         var response = await _payrollRecordService.GetPayrollRecordByIdAsync(id);

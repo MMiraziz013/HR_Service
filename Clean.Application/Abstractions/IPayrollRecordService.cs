@@ -12,9 +12,9 @@ public interface IPayrollRecordService
     
     Task<Response<GetPayrollRecordDto>> GetPayrollRecordByIdAsync(int id);
     
-    Task<Response<List<GetPayrollRecordDto>>> GetPayrollRecordsByEmployeeIdAsync(int employeeId);
+    Task<Response<List<GetPayrollWithSalaryDto>>> GetPayrollRecordsByEmployeeIdAsync(int employeeId);
     
-    Task<Response<GetPayrollRecordDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId);
+    Task<Response<GetPayrollWithSalaryDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId);
     
     // Task<Response<bool>> UpdatePayrollRecordAsync(UpdatePayrollRecordDto payrollDto);
     Task GenerateMonthlyPayrollRecordsAsync();

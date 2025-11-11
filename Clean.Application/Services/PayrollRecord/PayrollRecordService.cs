@@ -318,12 +318,12 @@ public class PayrollRecordService : IPayrollRecordService
         }
     }
 
-    public async Task<Response<List<GetPayrollRecordDto>>> GetPayrollRecordsByEmployeeIdAsync(int employeeId)
+    public async Task<Response<List<GetPayrollWithSalaryDto>>> GetPayrollRecordsByEmployeeIdAsync(int employeeId)
     {
         var cacheKey = $"payroll_employee_{employeeId}";
         try
         {
-            var cached = await _cacheService.GetAsync<Response<List<GetPayrollRecordDto>>>(cacheKey);
+            var cached = await _cacheService.GetAsync<Response<List<GetPayrollWithSalaryDto>>>(cacheKey);
             if (cached != null)
             {
                 return cached;
@@ -332,30 +332,41 @@ public class PayrollRecordService : IPayrollRecordService
             var employee = await _employeeRepository.GetEmployeeByIdAsync(employeeId);
             if (employee is null)
             {
-                return new Response<List<GetPayrollRecordDto>>(HttpStatusCode.NotFound, $"Employee with ID:{employeeId} not found.");
+                return new Response<List<GetPayrollWithSalaryDto>>(HttpStatusCode.NotFound, $"Employee with ID:{employeeId} not found.");
             }
             
             var record = await _payrollRecordRepository.GetByEmployeeIdAsync(employeeId);
-            if (record.Count==0)
+            if (!record.Any())
             {
-                return new Response<List<GetPayrollRecordDto>>(HttpStatusCode.NotFound, $"Payroll records for employee with ID:{employeeId} are not found.");
+                return new Response<List<GetPayrollWithSalaryDto>>(HttpStatusCode.NotFound, $"Payroll records for employee with ID:{employeeId} are not found.");
             }
 
-            var mapped = record.Select(r => new GetPayrollRecordDto
-            {
-                Id = r.Id,
-                CreatedAt = r.CreatedAt,
-                GrossPay = r.GrossPay,
-                Deductions = r.Deductions,
-                NetPay = r.NetPay,
-                PeriodStart = r.PeriodStart,
-                PeriodEnd = r.PeriodEnd,
-                EmployeeId = r.EmployeeId,
-                EmployeeName = $"{r.Employee.FirstName} {r.Employee.LastName}"
-            }).ToList();
-        
+            var salaryHistory = await _salaryHistoryRepository.GetSalaryHistoryByEmployeeIdAsync(employeeId);
+            
 
-            var response = new Response<List<GetPayrollRecordDto>>(
+            var mapped = record.Select(r =>
+            {
+                var salary = salaryHistory.FirstOrDefault(s =>
+                    s.Month.Year == r.PeriodStart.Year &&
+                    s.Month.Month == r.PeriodStart.Month);
+
+                return new GetPayrollWithSalaryDto
+                {
+                    Id = r.Id,
+                    CreatedAt = r.CreatedAt,
+                    GrossPay = r.GrossPay,
+                    Deductions = r.Deductions,
+                    NetPay = r.NetPay,
+                    PeriodStart = r.PeriodStart,
+                    PeriodEnd = r.PeriodEnd,
+                    EmployeeId = r.EmployeeId,
+                    EmployeeName = $"{r.Employee.FirstName} {r.Employee.LastName}",
+                    BaseSalary = salary?.BaseAmount ?? 0,
+                    Bonus = salary?.BonusAmount ?? 0
+                };
+            }).ToList();
+
+            var response = new Response<List<GetPayrollWithSalaryDto>>(
                 HttpStatusCode.OK, 
                 "Payroll record is retrieved successfully!",
                 mapped);
@@ -366,16 +377,16 @@ public class PayrollRecordService : IPayrollRecordService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while retrieving payroll records for Employee ID {id}.", employeeId);
-            return new Response<List<GetPayrollRecordDto>>(HttpStatusCode.InternalServerError, "Unexpected error occurred while retrieving employee payroll records.");
+            return new Response<List<GetPayrollWithSalaryDto>>(HttpStatusCode.InternalServerError, "Unexpected error occurred while retrieving employee payroll records.");
         }
     }
 
-    public async Task<Response<GetPayrollRecordDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId)
+    public async Task<Response<GetPayrollWithSalaryDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId)
     {
         var cacheKey = $"payroll_latest_employee_{employeeId}";
         try
         {
-            var cached = await _cacheService.GetAsync<Response<GetPayrollRecordDto>>(cacheKey);
+            var cached = await _cacheService.GetAsync<Response<GetPayrollWithSalaryDto>>(cacheKey);
             if (cached != null)
             {
                 return cached;
@@ -383,17 +394,19 @@ public class PayrollRecordService : IPayrollRecordService
             
             if (await _employeeRepository.GetEmployeeByIdAsync(employeeId) is null)
             {
-                return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, $"Employee with ID:{employeeId} not found.");
+                return new Response<GetPayrollWithSalaryDto>(HttpStatusCode.NotFound, $"Employee with ID:{employeeId} not found.");
             }
 
             var record = await _payrollRecordRepository.GetLatestByEmployeeIdAsync(employeeId);
         
             if (record is null)
             {
-                return new Response<GetPayrollRecordDto>(HttpStatusCode.NotFound, $"Latest record for employee with ID:{employeeId} not found.");
+                return new Response<GetPayrollWithSalaryDto>(HttpStatusCode.NotFound, $"Latest record for employee with ID:{employeeId} not found.");
             }
 
-            var mapped = new GetPayrollRecordDto
+            var salaryHistory = await _salaryHistoryRepository.GetSalaryByMonth(employeeId, record.PeriodStart);
+        
+            var mapped = new GetPayrollWithSalaryDto()
             {
                 Id = record.Id,
                 CreatedAt = record.CreatedAt,
@@ -404,10 +417,12 @@ public class PayrollRecordService : IPayrollRecordService
                 PeriodEnd = record.PeriodEnd,
                 EmployeeId = record.EmployeeId,
                 // Ensure record.Employee is loaded/not null
-                EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}"
+                EmployeeName = $"{record.Employee.FirstName} {record.Employee.LastName}",
+                BaseSalary = salaryHistory?.BaseAmount ?? 0,
+                Bonus = salaryHistory?.BonusAmount ?? 0
             };
             
-            var response = new Response<GetPayrollRecordDto>(
+            var response = new Response<GetPayrollWithSalaryDto>(
                 HttpStatusCode.OK,
                 message: "Records for employee retrieved successfully",
                 mapped);
@@ -418,7 +433,7 @@ public class PayrollRecordService : IPayrollRecordService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error while retrieving latest payroll record for Employee ID {id}.", employeeId);
-            return new Response<GetPayrollRecordDto>(HttpStatusCode.InternalServerError, "Unexpected error occurred while retrieving latest payroll record.");
+            return new Response<GetPayrollWithSalaryDto>(HttpStatusCode.InternalServerError, "Unexpected error occurred while retrieving latest payroll record.");
         }
     }
 

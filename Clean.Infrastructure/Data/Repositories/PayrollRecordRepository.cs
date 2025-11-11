@@ -1,5 +1,6 @@
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -31,6 +32,50 @@ public class PayrollRecordRepository: IPayrollRecordRepository
         return true;
     }
 
+    public async Task<IEnumerable<PayrollReportDto>> GetForReportAsync(int? employeeId, DateOnly? startDate,
+        DateOnly? endDate, int? departmentId)
+    {
+        IQueryable<PayrollRecord> query = _context.PayrollRecords
+            .Include(e => e.Employee)
+            .Include(e => e.Employee.Department)
+            .OrderBy(e => e.Id);
+
+        if (employeeId.HasValue)
+        {
+           query = query.Where(e => e.EmployeeId == employeeId);
+        }
+
+        if (startDate.HasValue)
+        {
+            query = query.Where(e => e.PeriodStart >= startDate);
+        }
+
+        if (endDate.HasValue)
+        {
+            query = query.Where(e => e.PeriodEnd <= endDate);
+        }
+
+        if (departmentId.HasValue)
+        {
+            query = query.Where(e => e.Employee.DepartmentId == departmentId);
+        }
+
+        var payrolls = await query
+            .Select(e => new PayrollReportDto
+            {
+                Id = e.Id,
+                CreatedAt = e.CreatedAt,
+                Deductions = e.Deductions,
+                EmployeeId = e.EmployeeId,
+                EmployeeName = $"{e.Employee.FirstName} {e.Employee.LastName}",
+                GrossPay = e.GrossPay,
+                NetPay = e.NetPay,
+                PeriodStart = e.PeriodStart,
+                PeriodEnd = e.PeriodEnd
+            }).ToListAsync();
+        return payrolls;
+    }
+    
     public async Task<PayrollRecord?> GetPayrollByMonthAsync(int employeeId, DateOnly month)
     {
         var startOfMonth = new DateOnly(month.Year, month.Month, 1);

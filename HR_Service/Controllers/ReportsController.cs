@@ -34,4 +34,45 @@ public class ReportsController : ControllerBase
             fileDownloadName: report.FileName
         );
     }
+    
+    [HttpGet("payrolls")]
+    [PermissionAuthorize(PermissionConstants.Employees.ManageAll)]
+    public async Task<IActionResult> DownloadPayrollReport([FromQuery] PayrollReportFilter filter)
+    {
+        var report = await _reportsService.GeneratePayrollReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+        );
+    }
+    
+      
+    [HttpGet("salaries")]
+    [PermissionAuthorize(PermissionConstants.Employees.ManageAll)]
+    public async Task<IActionResult> DownloadSalaryReport([FromQuery] SalaryFilter filter)
+    {
+        var report = await _reportsService.GenerateSalaryHistoryReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+        );
+    }
+    
+    [HttpGet("anomalies")]
+    [PermissionAuthorize(PermissionConstants.Employees.ManageAll)]
+    public async Task<IActionResult> DownloadSalaryAnomalyReport([FromQuery] SalaryAnomalyFilter filter)
+    {
+        var report = await _reportsService.GenerateSalaryAnomalyReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+        );
+    }
+    
 }
