@@ -22,6 +22,7 @@ public interface ISalaryHistoryRepository
 
       Task<IEnumerable<SalaryHistoryDto>> GetForReportAsync(int? employeeId, int? departmentId, DateOnly? fromMonth,
           DateOnly? toMonth);
-    
+
+      Task<List<SalaryHistory>> GetAllAsync();
 
 }

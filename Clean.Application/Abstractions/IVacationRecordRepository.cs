@@ -22,4 +22,5 @@ public interface IVacationRecordRepository
     Task<List<VacationRecord>> GetVacationsToFinishAsync(DateOnly today);
 
     Task<List<VacationRecordDto>> GetVacationRecordReportAsync(VacationRecordReportFilter filter);
+    Task<List<VacationRecord>> GetByEmployeeId(int employeeId);
 }

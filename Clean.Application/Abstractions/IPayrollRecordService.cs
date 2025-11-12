@@ -14,9 +14,7 @@ public interface IPayrollRecordService
     
     Task<Response<List<GetPayrollWithSalaryDto>>> GetPayrollRecordsByEmployeeIdAsync(int employeeId);
     
-    Task<Response<GetPayrollWithSalaryDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId);
-    
-    // Task<Response<bool>> UpdatePayrollRecordAsync(UpdatePayrollRecordDto payrollDto);
+    Task<Response<GetPayrollWithSalaryDto>> GetLatestPayrollRecordByEmployeeIdAsync(int employeeId); 
     Task GenerateMonthlyPayrollRecordsAsync();
     Task<Response<UpdatePayrollDto>> UpdatePayrollDeductionsAsync(UpdatePayrollDto dto);
     Task<Response<bool>> DeletePayrollRecordAsync(int id);

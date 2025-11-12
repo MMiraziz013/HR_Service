@@ -10,21 +10,18 @@ namespace Clean.Application.Services.SalaryAnomaly;
 public class SalaryAnomalyService : ISalaryAnomalyService
 {
     private readonly ISalaryAnomalyRepository _repository;
-    private readonly ISalaryHistoryRepository _salaryRepository;
     private readonly IPayrollRecordRepository _payrollRepository;
     private readonly IEmployeeRepository _employeeRepository;
     private readonly ILogger<SalaryAnomalyService> _logger;
     private readonly ICacheService _cacheService;
 
     public SalaryAnomalyService(ISalaryAnomalyRepository repository, 
-        ISalaryHistoryRepository salaryRepository, 
         IPayrollRecordRepository payrollRepository,
         IEmployeeRepository employeeRepository,
         ILogger<SalaryAnomalyService> logger,
         ICacheService cacheService)
     {
         _repository = repository;
-        _salaryRepository = salaryRepository;
         _payrollRepository = payrollRepository;
         _employeeRepository = employeeRepository;
         _logger = logger;

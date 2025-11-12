@@ -302,4 +302,11 @@ public class VacationRecordRepository : IVacationRecordRepository
         return list;
     }
 
+    public async Task<List<VacationRecord>> GetByEmployeeId(int employeeId)
+    {
+        return await _context.VacationRecords
+            .Where(v => v.EmployeeId == employeeId)
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();;
+    }
 }
