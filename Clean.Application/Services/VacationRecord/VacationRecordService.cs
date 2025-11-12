@@ -70,7 +70,7 @@ public class VacationRecordService : IVacationRecordService
         }
     }
     
-    public async Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto)
+    public async Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto, decimal actualPaymentAmount)
     {
         var daysCount = 0;
         try
@@ -84,7 +84,7 @@ public class VacationRecordService : IVacationRecordService
                 EndDate = dto.EndDate,
                 Type = dto.Type,
                 Status = VacationStatus.Pending,
-                PaymentAmount = 100,
+                PaymentAmount = actualPaymentAmount,
                 ManagerComment = null
             };
 
@@ -97,8 +97,13 @@ public class VacationRecordService : IVacationRecordService
             }
 
             await InvalidateVacationRecordListsCache();
+            await _cacheService.RemoveAsync($"vacation_balance_by_employee_{dto.EmployeeId}");
+            await _cacheService.RemoveByPatternAsync("all_vacation_balances_*");
+            await _cacheService.RemoveByPatternAsync("latest_vacation_balances_*");
 
             var employee = await _employeeRepository.GetEmployeeByIdAsync(addedRecord.EmployeeId);
+            
+            _logger.LogInformation("💰 Payment amount before save: {Amount}", actualPaymentAmount);
 
             var addedVacation = new GetVacationRecordDto
             {
@@ -270,7 +275,8 @@ public class VacationRecordService : IVacationRecordService
             {
                 EmployeeId = dto.EmployeeId,
                 StartDate = dto.StartDate,
-                EndDate = dto.EndDate
+                EndDate = dto.EndDate,
+                Type = dto.Type
             });
         
         if (availabilityCheck.Data!.IsAvailable == false)
@@ -294,13 +300,17 @@ public class VacationRecordService : IVacationRecordService
             return new Response<string>(HttpStatusCode.NotFound, "No Senior HR employees found to process the request. Request not created.");
         }
         
+        // Capture the payment amount locally and ensure it's set on the DTO being passed
+        decimal determinedPaymentAmount = availabilityCheck.Data.PaymentAmount; 
+        dto.PaymentAmount = determinedPaymentAmount; // K
+        
         GetVacationRecordDto addedVacationRequest = null!;
         int daysDeducted = 0;
         
         try
         {
-            var request = await AddVacationRecordAsync(dto);
-
+            dto.PaymentAmount = availabilityCheck.Data.PaymentAmount;
+            var request = await AddVacationRecordAsync(dto, determinedPaymentAmount);
             if (request.Data is null || request.StatusCode != (int)HttpStatusCode.OK)
             {
                  return new Response<string>((HttpStatusCode)request.StatusCode, request.Message);
@@ -417,7 +427,6 @@ public class VacationRecordService : IVacationRecordService
     //         record.Type = dto.Type.Value;
     //     }
     //     
-    //     //TODO: See if it should be calculated automatically rather than set manually.
     //     if (dto.PaymentAmount.HasValue) 
     //     {
     //         record.PaymentAmount = dto.PaymentAmount;
@@ -539,6 +548,9 @@ public class VacationRecordService : IVacationRecordService
                     {
                         await _cacheService.RemoveAsync($"vacation_record_{vacationRequest.Id}");
                         await InvalidateVacationRecordListsCache();
+                        await _cacheService.RemoveAsync($"vacation_balance_by_employee_{vacationRequest.EmployeeId}");
+                        await _cacheService.RemoveByPatternAsync("all_vacation_balances_*");
+                        await _cacheService.RemoveByPatternAsync("latest_vacation_balances_*");
                     }
 
                     return new Response<bool>(HttpStatusCode.OK, "Vacation request rejected successfully.", true);

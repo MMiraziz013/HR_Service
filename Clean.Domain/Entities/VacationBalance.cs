@@ -7,9 +7,7 @@ public class VacationBalance
     public int UsedDays { get; set; }
     public int RemainingDays => TotalDaysPerYear - UsedDays;
     public int Year { get; set; }
-    
-    // NEW PROPERTIES:
-    public int ByExperienceBonusDays { get; set; }  // based on the experience of the employee
+    public int ByExperienceBonusDays { get; set; }
     public DateOnly PeriodStart { get; set; }
     public DateOnly PeriodEnd { get; set; }
     

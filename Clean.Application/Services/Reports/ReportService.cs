@@ -7,6 +7,8 @@ using Clean.Application.Dtos.Reports.Payroll;
 using Clean.Application.Dtos.Reports.ReportFilters;
 using Clean.Application.Dtos.Reports.SalaryAnomaly;
 using Clean.Application.Dtos.Reports.SalaryHistory;
+using Clean.Application.Dtos.Reports.VacationBalance;
+using VacationBalanceFilter = Clean.Application.Dtos.Reports.ReportFilters.VacationBalanceReportFilter;
 
 namespace Clean.Application.Services.Reports;
 
@@ -23,14 +25,24 @@ public class ReportsService : IReportsService
     private readonly ISalaryHistoryRepository _salaryHistoryRepository;
     private readonly IPayrollRecordRepository _payrollRepository;
     private readonly ISalaryAnomalyRepository _salaryAnomalyRepository;
-    public ReportsService(IEmployeeRepository employeeRepository, IDepartmentRepository departmentRepository,
-    ISalaryHistoryRepository salaryHistoryRepository,IPayrollRecordRepository payrollRepository,ISalaryAnomalyRepository salaryAnomalyRepository)
+    private readonly IVacationBalanceRepository _vacationBalanceRepository;
+    private readonly IVacationRecordRepository _vacationRecordRepository;
+
+    public ReportsService(IEmployeeRepository employeeRepository, 
+        IDepartmentRepository departmentRepository, 
+        ISalaryHistoryRepository salaryHistoryRepository,
+        IPayrollRecordRepository payrollRepository,
+        ISalaryAnomalyRepository salaryAnomalyRepository,
+        IVacationBalanceRepository vacationBalanceRepository,
+        IVacationRecordRepository vacationRecordRepository)
     {
         _employeeRepository = employeeRepository;
         _departmentRepository = departmentRepository;
         _salaryHistoryRepository = salaryHistoryRepository;
         _payrollRepository = payrollRepository;
         _salaryAnomalyRepository = salaryAnomalyRepository;
+        _vacationBalanceRepository = vacationBalanceRepository;
+        _vacationRecordRepository = vacationRecordRepository;
     }
     
     public async Task<ReportResult> GenerateEmployeeReportAsync(EmployeeReportFilter filter)
@@ -107,26 +119,35 @@ public class ReportsService : IReportsService
         };
     }
 
+    public async Task<ReportResult> GenerateVacationBalanceReportAsync(VacationBalanceReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var departments = await _vacationBalanceRepository.GetVacationBalanceReportAsync(filter);
 
-    // private ReportResult GenerateExcelCompatibilityReport<T>(IEnumerable<T> data, string baseFileName)
-    // {
-    //     // Reuse the CSV generation logic
-    //     var csvBytes = GenerateCsv(data);
-    //     var fileName = $"{baseFileName}_{DateTime.UtcNow:yyyyMMddHHmmss}.xlsx"; // Use .xlsx extension
-    //
-    //     // Use the MIME type for Excel files. 
-    //     // Excel will open this CSV data and format it.
-    //     return new ReportResult(csvBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName, csvBytes.Length);
-    //
-    //     /* * Alternative for older Excel:
-    //      * return new ReportResult(csvBytes, "application/vnd.ms-excel", fileName, csvBytes.Length);
-    //      */
-    // }
+        return format switch
+        {
+            "json" => GenerateJsonReport(departments, "departments"),
+            "csv" => GenerateCsvReport(departments, "departments"),
 
-    
-    
-    
-    
+            _ => throw new NotSupportedException($"Report format '{format}' is not supported.")
+        };
+    }
+
+    public async Task<ReportResult> GenerateVacationRecordReportAsync(VacationRecordReportFilter filter)
+    {
+        var format = (filter.Format ?? "json").ToLowerInvariant();
+        var vacationRecords = await _vacationRecordRepository.GetVacationRecordReportAsync(filter);
+
+        return format switch
+        {
+            "json" => GenerateJsonReport(vacationRecords, "vacation_records"),
+            "csv" => GenerateCsvReport(vacationRecords, "vacation_records"),
+
+            _ => throw new NotSupportedException($"Report format '{format}' is not supported")
+        };
+    }
+
+
     private static ReportResult GenerateJsonReport<T>(IEnumerable<T> data, string baseFileName)
     {
         var bytes = JsonSerializer.SerializeToUtf8Bytes(
@@ -178,6 +199,10 @@ public class ReportsService : IReportsService
         else if (dataType == typeof(DepartmentDto))
         {
             csv.Context.RegisterClassMap<DepartmentDtoMap>();
+        }
+        else if (dataType == typeof(VacationBalanceDto))
+        {
+            csv.Context.RegisterClassMap<VacationBalanceDtoMap>();
         }
         
         csv.WriteRecords(data);

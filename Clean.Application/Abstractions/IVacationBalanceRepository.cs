@@ -1,4 +1,6 @@
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.VacationBalance;
 using Clean.Application.Dtos.VacationBalance;
 using Clean.Domain.Entities;
 
@@ -19,4 +21,6 @@ public interface IVacationBalanceRepository
     // Task<int> GetEmployeeRemainingDaysAsync(int employeeId);
 
     Task<VacationBalance?> GetVacationBalanceByEmployeeIdAsync(int employeeId);
+
+    Task<List<VacationBalanceDto>> GetVacationBalanceReportAsync(VacationBalanceReportFilter filter);
 }

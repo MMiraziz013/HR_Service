@@ -17,6 +17,12 @@ public class VacationRecordChecker
             return pastDateCheck;
         }
 
+        var durationCheck = CheckMaxDuration(request);
+        if (durationCheck.IsAvailable == false)
+        {
+            return durationCheck;
+        }
+
         var experienceCheck = CheckEmploymentDuration(employee);
         if (experienceCheck.IsAvailable == false)
         {
@@ -44,7 +50,7 @@ public class VacationRecordChecker
             }
 
             // Payment Amount: Payment calculation logic
-            var paymentCheck =  CalculatePaymentAmount(request, employee);
+            var paymentCheck = CalculatePaymentAmount(request, employee);
             if (paymentCheck.IsAvailable == false)
             {
                 return paymentCheck;
@@ -78,6 +84,27 @@ public class VacationRecordChecker
             {
                 IsAvailable = false,
                 Message = "Vacation should be requested at least 7 days in advance."
+            };
+        }
+
+        return Success();
+    }
+
+    /// <summary>
+    /// Checks if the max duration of the requested vacation is not more than 24 days.
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
+    private static VacationCheckDto CheckMaxDuration(RequestVacationDto request)
+    {
+        var duration = (request.EndDate.ToDateTime(TimeOnly.MinValue) - request.StartDate.ToDateTime(TimeOnly.MinValue)).Days;
+
+        if (duration > 24)
+        {
+            return new VacationCheckDto
+            {
+                IsAvailable = false,
+                Message = "You can take up to 24 days per vacation.",
             };
         }
 
@@ -139,12 +166,12 @@ public class VacationRecordChecker
             .FirstOrDefault();
 
         if (latestVacation != null &&
-            latestVacation.EndDate.AddMonths(6) > DateOnly.FromDateTime(DateTime.Today))
+            latestVacation.EndDate.AddMonths(5) > DateOnly.FromDateTime(DateTime.Today))
         {
             return new VacationCheckDto
             {
                 IsAvailable = false,
-                Message = "It’s been less than 6 months since your last vacation."
+                Message = "It’s been less than 5 months since your last vacation."
             };
         }
 

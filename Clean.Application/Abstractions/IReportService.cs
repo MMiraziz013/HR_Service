@@ -16,6 +16,10 @@ public interface IReportsService
 
     Task<ReportResult> GenerateDepartmentReportAsync(DepartmentReportFilter filter);
 
+    Task<ReportResult> GenerateVacationBalanceReportAsync(VacationBalanceReportFilter filter);
+
+    Task<ReportResult> GenerateVacationRecordReportAsync(VacationRecordReportFilter filter);
+
 }
 
 public record ReportResult(byte[] Content, string ContentType, string FileName, long? ContentLength = null);

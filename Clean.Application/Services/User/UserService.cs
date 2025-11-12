@@ -93,7 +93,6 @@ public class UserService : IUserService
                     return new Response<string>(HttpStatusCode.BadRequest, errors);
                 }
 
-                // This adds a record in the "users" table, that joins user and their roles.
                 await _userManager.AddToRoleAsync(user, dto.UserRole.GetDisplayName());
                 
                 var employee = new Domain.Entities.Employee
@@ -171,19 +170,14 @@ public class UserService : IUserService
                 }
 
                 await transaction.CommitAsync();
-                // Remove cached "all users" list
                 await _cacheService.RemoveAsync("all_users_all");
                 
                 await _cacheService.RemoveByPatternAsync("employees_*");
                 
-                // 2. Department-related cache cleanup (NEW LOGIC)
-                // Invalidates the specific department's nested employee list
                 await _cacheService.RemoveAsync($"department_with_employees_{employee.DepartmentId}");
                 
-                // 3. Department Summary cleanup (SUGGESTED ADDITION)
                 await _cacheService.RemoveByPatternAsync("departments_summary_*");
         
-                // Invalidate the list/search views for all departments
                 await _cacheService.RemoveByPatternAsync("departments_with_employees_*");
                 await _cacheService.RemoveAsync($"user_profile_{user.Id}"); // Invalidate single user profile cache
 
@@ -281,8 +275,6 @@ public class UserService : IUserService
             return new Response<UserProfileDto>(HttpStatusCode.InternalServerError, "Failed to retrieve profile due to an unexpected error.");
         }
     }
-
-    //TODO: Apply Redis Caching for all users too
     public async Task<Response<List<UserProfileDto>>> GetAllUserProfilesAsync(string? search = null)
     {
         try

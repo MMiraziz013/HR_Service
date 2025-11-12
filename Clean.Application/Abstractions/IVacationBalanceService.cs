@@ -16,6 +16,4 @@ public interface IVacationBalanceService
     Task<Response<GetVacationBalanceDto>> GetVacationBalanceByIdAsync(int vacationBalanceId);
 
     Task<Response<GetVacationBalanceDto>> UpdateVacationBalanceAsync(UpdateVacationBalanceDto dto);
-    
-    //TODO: Check if delete is need for vacation balance.
 }

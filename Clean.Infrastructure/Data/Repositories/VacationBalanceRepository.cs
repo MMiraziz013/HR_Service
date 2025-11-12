@@ -1,8 +1,8 @@
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Filters;
-using Clean.Application.Dtos.VacationBalance;
+using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.VacationBalance;
 using Clean.Domain.Entities;
-using Clean.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
 
 namespace Clean.Infrastructure.Data.Repositories;
@@ -105,6 +105,7 @@ public class VacationBalanceRepository : IVacationBalanceRepository
 
         return balance;
     }
+    
 
     public async Task<bool> ExistsAsync(int employeeId, int year)
     {
@@ -112,5 +113,154 @@ public class VacationBalanceRepository : IVacationBalanceRepository
             .AnyAsync(v => v.EmployeeId == employeeId && v.Year == year);
     }
 
-    //TODO: Check later if we need delete method for VacationBalance
+    public async Task<List<VacationBalanceDto>> GetVacationBalanceReportAsync(VacationBalanceReportFilter filter)
+    {
+        var query = _context.VacationBalances
+            .Include(vb => vb.Employee)
+            .ThenInclude(e => e.Department)
+            .Include(vacationBalance => vacationBalance.Employee)
+            .ThenInclude(employee => employee.VacationRecords)
+            .Include(vacationBalance => vacationBalance.Employee)
+            .ThenInclude(employee => employee.User)
+            .AsQueryable();
+
+        if (filter.Year.HasValue)
+        {
+            query = query.Where(v => v.Year == filter.Year.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.DepartmentName))
+        {
+            query = query.Where(v => v.Employee.Department.Name
+                .ToLower().Contains(filter.DepartmentName.ToLower()));        }
+
+        if (!string.IsNullOrWhiteSpace(filter.ByEmployeeName))
+        {
+            var nameParts = filter.ByEmployeeName
+                .Trim()
+                .ToLower()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (nameParts.Length == 1)
+            {
+                var name = nameParts[0];
+                query = query.Where(v =>
+                    v.Employee.FirstName.ToLower().Contains(name) ||
+                    v.Employee.LastName.ToLower().Contains(name));
+            }
+            else if (nameParts.Length >= 2)
+            {
+                var firstName = nameParts[0];
+                var lastName = nameParts[1];
+                query = query.Where(v =>
+                    v.Employee.FirstName.ToLower().Contains(firstName) &&
+                    v.Employee.LastName.ToLower().Contains(lastName));
+            }
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+
+        if (filter.MinWorkedYears.HasValue)
+        {
+            var minHireDate = today.AddYears(-filter.MinWorkedYears.Value);
+            query = query.Where(vb => vb.Employee.HireDate <= minHireDate);
+        }
+
+        if (filter.MaxWorkedYears.HasValue)
+        {
+            var maxHireDate = today.AddYears(-filter.MaxWorkedYears.Value);
+            query = query.Where(vb => vb.Employee.HireDate >= maxHireDate);
+        }
+
+
+        if (filter.HasBonusDays.HasValue)
+        {
+            query = query.Where(v => filter.HasBonusDays.Value
+                ? v.ByExperienceBonusDays > 0
+                : v.ByExperienceBonusDays == 0);
+        }
+
+        if (filter.EmployeeId.HasValue)
+        {
+            query = query.Where(v => v.EmployeeId == filter.EmployeeId.Value);
+        }
+
+        if (filter.Position.HasValue)
+        {
+            query = query.Where(v => v.Employee.Position == filter.Position);
+        }
+
+        if (filter.FromPeriodStart.HasValue)
+        {
+            query = query.Where(v => v.PeriodStart >= filter.FromPeriodStart.Value);
+        }
+
+        if (filter.ToPeriodEnd.HasValue)
+        {
+            query = query.Where(v => v.PeriodEnd <= filter.ToPeriodEnd.Value);
+        }
+
+        if (filter.MinUsedDays.HasValue)
+        {
+            query = query.Where(v => v.UsedDays >= filter.MinUsedDays.Value);
+        }
+
+        if (filter.MaxUsedDays.HasValue)
+        {
+            query = query.Where(v => v.UsedDays <= filter.MaxUsedDays.Value);
+        }
+
+        if (filter.MinRemainingDays.HasValue)
+        {
+            query = query.Where(v => (v.TotalDaysPerYear - v.UsedDays) >= filter.MinRemainingDays.Value);
+        }
+
+        if (filter.MaxRemainingDays.HasValue)
+        {
+            query = query.Where(v => (v.TotalDaysPerYear - v.UsedDays) <= filter.MaxRemainingDays.Value);
+        }
+
+        if (filter.IsLimitFinished.HasValue)
+        {
+            query = query.Where(v => filter.IsLimitFinished.Value
+                ? (v.TotalDaysPerYear - v.UsedDays) == 0
+                : (v.TotalDaysPerYear - v.UsedDays) > 0);
+
+        }
+
+        if (filter.HasUsedDays.HasValue)
+        {
+            query = query.Where(v => filter.HasUsedDays.Value
+                ? v.UsedDays > 0
+                : v.UsedDays == 0);
+
+        }
+
+        var list = await query.ToListAsync();
+        var today2 = DateOnly.FromDateTime(DateTime.Today);
+
+        var balances = list.Select(vb => new VacationBalanceDto
+        {
+            Id = vb.Id,
+            EmployeeId = vb.EmployeeId,
+            EmployeeName = vb.Employee.FirstName + " " + vb.Employee.LastName,
+            DepartmentName = vb.Employee.Department.Name,
+            Position = vb.Employee.Position.ToString(),
+            Role = vb.Employee.User.Role.ToString(),
+
+            WorkedYears = today2.Year - vb.Employee.HireDate.Year -
+                          (today2.DayOfYear < vb.Employee.HireDate.DayOfYear ? 1 : 0),
+
+            ByExperienceBonusDays = vb.ByExperienceBonusDays,
+            TotalDaysPerYear = vb.TotalDaysPerYear,
+            UsedDays = vb.UsedDays,
+            VacationsTaken = vb.Employee.VacationRecords.Count(vr => vr.StartDate.Year == DateTime.Today.Year),
+
+            Year = vb.Year,
+            BalanceFrom = vb.PeriodStart,
+            BalanceTo = vb.PeriodEnd
+        }).ToList();
+
+        return balances;
+    }
 }

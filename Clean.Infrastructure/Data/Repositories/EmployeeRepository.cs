@@ -110,6 +110,7 @@ public class EmployeeRepository : IEmployeeRepository
             .Include(e => e.Department)
             .Include(e=> e.SalaryHistories)
             .Include(e=> e.VacationBalances)
+            .Include(e=> e.PayrollRecords)
             .FirstOrDefaultAsync(e => e.Id == id);
         return employee;
     }

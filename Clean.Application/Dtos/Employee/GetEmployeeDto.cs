@@ -12,17 +12,5 @@ public class GetEmployeeDto
     public string? HireDate { get; set; }
     public decimal BaseSalary { get; set; }
     public bool IsActive { get; set; }
-
     public string DepartmentName { get; set; } = default!;
-    
-    //TODO: Check if we need below properties in the future
-    
-    // public VacationBalance VacationBalance { get; set; } = default!;
-    //
-    // public List<SalaryHistory> SalaryHistories { get; set; } = new();
-    // public List<VacationRecord> VacationRecords { get; set; } = new();
-    //
-    // public List<SalaryAnomaly> SalaryAnomalies { get; set; } = new();
-    //
-    // public List<PayrollRecord> PayrollRecords { get; set; } = new();
 }
