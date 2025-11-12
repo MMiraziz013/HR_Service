@@ -174,9 +174,9 @@ public class PayrollRecordServiceTests
             BaseAmount = 1800
         };
 
-        var vacationRecords = new List<VacationRecord>
+        var vacationRecords = new List<Domain.Entities.VacationRecord>
         {
-            new VacationRecord
+            new Domain.Entities.VacationRecord
             {
                 EmployeeId = employeeId,
                 Type = VacationType.Paid,
