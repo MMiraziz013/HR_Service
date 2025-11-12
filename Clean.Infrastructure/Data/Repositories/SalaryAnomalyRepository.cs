@@ -65,7 +65,7 @@ public class SalaryAnomalyRepository : ISalaryAnomalyRepository
             .Select(e => new SalaryAnomalyDto
             {
                 Id = e.Id,
-                Month = default,
+                Month = e.Month,
                 ActualAmount = e.ActualAmount,
                 DepartmentId = e.Employee.DepartmentId,
                 DepartmentName = e.Employee.Department.Name,
