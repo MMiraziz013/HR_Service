@@ -1,4 +1,6 @@
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.VacationRecord;
 using Clean.Application.Dtos.VacationRecords;
 using Clean.Domain.Entities;
 
@@ -18,5 +20,7 @@ public interface IVacationRecordRepository
     Task<bool> Delete(int id);
 
     Task<List<VacationRecord>> GetVacationsToFinishAsync(DateOnly today);
+
+    Task<List<VacationRecordDto>> GetVacationRecordReportAsync(VacationRecordReportFilter filter);
     Task<List<VacationRecord>> GetByEmployeeId(int employeeId);
 }

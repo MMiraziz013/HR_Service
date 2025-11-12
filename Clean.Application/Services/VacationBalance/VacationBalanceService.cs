@@ -426,6 +426,4 @@ public class VacationBalanceService : IVacationBalanceService
                $"role:{filter.UserRole?.ToString() ?? "null"}_" +
                $"position:{filter.EmployeePosition?.ToString() ?? "null"}";
     }
-    
-    //TODO: Check later if we need delete method for VacationBalance
 }

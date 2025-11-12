@@ -1,6 +1,8 @@
 using Clean.Application.Abstractions;
 using Clean.Application.Dtos.Employee;
 using Clean.Application.Dtos.Filters;
+using Clean.Application.Dtos.Reports.ReportFilters;
+using Clean.Application.Dtos.Reports.VacationRecord;
 using Clean.Application.Dtos.VacationRecords;
 using Clean.Domain.Entities;
 using Clean.Domain.Enums;
@@ -161,6 +163,143 @@ public class VacationRecordRepository : IVacationRecordRepository
         return await _context.VacationRecords
             .Where(v => v.Status == VacationStatus.Approved && v.EndDate < today)
             .ToListAsync();
+    }
+
+    public async Task<List<VacationRecordDto>> GetVacationRecordReportAsync(VacationRecordReportFilter filter)
+    {
+        var query = _context.VacationRecords
+            .Include(v => v.Employee)
+            .ThenInclude(e => e.Department)
+            .Include(v => v.Employee)
+            .ThenInclude(e => e.User)
+            .AsQueryable();
+
+        if (filter.Id.HasValue)
+        {
+            query = query.Where(v => v.Id == filter.Id.Value);
+        }
+
+        if (filter.EmployeeId.HasValue)
+        {
+            query = query.Where(v => v.EmployeeId == filter.EmployeeId.Value);
+        }
+
+        if (filter.Role.HasValue)
+        {
+            query = query.Where(v => v.Employee.User.Role == filter.Role.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.EmployeeName))
+        {
+            var nameParts = filter.EmployeeName
+                .Trim()
+                .ToLower()
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (nameParts.Length == 1)
+            {
+                var name = nameParts[0];
+                query = query.Where(v =>
+                    v.Employee.FirstName.ToLower().Contains(name) ||
+                    v.Employee.LastName.ToLower().Contains(name));
+            }
+            else if (nameParts.Length >= 2)
+            {
+                var firstName = nameParts[0];
+                var lastName = nameParts[1];
+                query = query.Where(v =>
+                    v.Employee.FirstName.ToLower().Contains(firstName) &&
+                    v.Employee.LastName.ToLower().Contains(lastName));
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.DepartmentName))
+        {
+            query = query.Where(v =>
+                v.Employee.Department.Name.ToLower().Contains(filter.DepartmentName.ToLower()));
+        }
+
+        if (filter.Year.HasValue)
+        {
+            query = query.Where(v =>
+                v.StartDate.Year == filter.Year.Value || v.EndDate.Year == filter.Year.Value);
+        }
+
+        if (filter.VacationType.HasValue)
+        {
+            query = query.Where(v => v.Type == filter.VacationType.Value);
+        }
+
+        if (filter.Status.HasValue)
+        {
+            query = query.Where(v => v.Status == filter.Status.Value);
+        }
+
+        if (filter.MinDuration.HasValue)
+        {
+            query = query.Where(v => (v.EndDate.DayNumber - v.StartDate.DayNumber + 1) >= filter.MinDuration.Value);
+        }
+
+        if (filter.MaxDuration.HasValue)
+        {
+            query = query.Where(v => (v.EndDate.DayNumber - v.StartDate.DayNumber + 1) <= filter.MaxDuration.Value);
+        }
+
+        if (filter.MinPaymentAmount.HasValue)
+        {
+            query = query.Where(v => v.PaymentAmount.HasValue && v.PaymentAmount.Value >= filter.MinPaymentAmount.Value);
+        }
+
+        if (filter.MaxPaymentAmount.HasValue)
+        {
+            query = query.Where(v => v.PaymentAmount.HasValue && v.PaymentAmount.Value <= filter.MaxPaymentAmount.Value);
+        }
+
+        if (filter.IsCurrentlyActive.HasValue && filter.IsCurrentlyActive.Value)
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+            query = query.Where(v => v.StartDate <= today && v.EndDate >= today);
+        }
+
+        // Filter by StartDate range
+        if (filter.StartDateFrom.HasValue)
+        {
+            query = query.Where(v => v.StartDate >= filter.StartDateFrom.Value);
+        }
+
+        if (filter.StartDateTo.HasValue)
+        {
+            query = query.Where(v => v.StartDate <= filter.StartDateTo.Value);
+        }
+
+        // Filter by EndDate range
+        if (filter.EndDateFrom.HasValue)
+        {
+            query = query.Where(v => v.EndDate >= filter.EndDateFrom.Value);
+        }
+
+        if (filter.EndDateTo.HasValue)
+        {
+            query = query.Where(v => v.EndDate <= filter.EndDateTo.Value);
+        }
+
+        var list = await query
+            .Select(v => new VacationRecordDto
+            {
+                Id = v.Id,
+                EmployeeId = v.EmployeeId,
+                EmployeeName = v.Employee.FirstName + " " + v.Employee.LastName,
+                DepartmentName = v.Employee.Department.Name,
+                VacationDays = v.EndDate.DayNumber - v.StartDate.DayNumber + 1,
+                VacationType = v.Type.ToString(),
+                PaidAmount = v.PaymentAmount ?? 0,
+                Status = v.Status.ToString(),
+                From = v.StartDate,
+                To = v.EndDate
+            })
+            .ToListAsync();
+
+        return list;
     }
 
     public async Task<List<VacationRecord>> GetByEmployeeId(int employeeId)

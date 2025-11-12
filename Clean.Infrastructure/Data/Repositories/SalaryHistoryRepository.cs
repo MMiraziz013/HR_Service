@@ -177,9 +177,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
 
     }
    
-    
-    //TODO: later such function might be added into services if needed
-    public async Task<SalaryHistory?> GetLatestSalaryHistoryAsync(int employeeId)
+        public async Task<SalaryHistory?> GetLatestSalaryHistoryAsync(int employeeId)
     {
         return await _context.SalaryHistories
             .Where(s => s.EmployeeId == employeeId)

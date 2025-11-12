@@ -644,5 +644,4 @@ public SalaryHistoryService(ISalaryHistoryRepository repository,
             return new Response<List<DepartmentBonusAppliedDto>>(HttpStatusCode.InternalServerError, "An unexpected error occurred while applying department bonus.");
         }
     }
-
 }

@@ -56,9 +56,4 @@ public static class VacationCalculator
             _ => 0
         };
     }
-    
-    public static int CalculateVacationDays(Domain.Entities.Employee employee)
-    {
-        throw new NotImplementedException();
-    }
 }

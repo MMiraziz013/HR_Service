@@ -106,14 +106,12 @@ public static class Program
         builder.Services.AddIdentityServices(builder.Configuration);
         builder.Services.AddApplicationServices(builder.Configuration);
         builder.Services.AddInfrastructureServices(builder.Configuration);
-        
-        
-        //TODO: Check if quartz was executed later.
+
         builder.Services.AddQuartz(q =>
         {
             q.UseMicrosoftDependencyInjectionJobFactory();
 
-            // ✅ Use persistent store
+            // persistent store
             q.UsePersistentStore(options =>
             {
                 options.UseProperties = true;
@@ -133,90 +131,67 @@ public static class Program
                     pgOptions.ConnectionString = baseConnectionString!;
                 });
 
-                // Optional: use JSON serialization for job data
                 options.UseJsonSerializer();
             });
             
-            //TODO: Return the original time configuration for triggers once testing is done, and update the server.
-            
-            // Define the target time (22:00 UTC) which is 03:00 AM GMT+5
-            const int targetHourUtc = 00; // 10 PM UTC
+            const int targetHourUtc = 00;
             const int targetMinute = 10;
 
             var jobKey = new JobKey("VacationBalanceJob");
             q.AddJob<VacationBalanceJob>(opts => opts.WithIdentity(jobKey));
 
-            // ✅ Vacation Balance Job: Runs at 22:00 UTC (03:00 AM GMT+5)
             q.AddTrigger(opts => opts
                     .ForJob(jobKey)
                     .WithIdentity("VacationBalanceTrigger")
                     .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
-                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock
-            );
-
-            // ---
-
-            var salaryJobKey = new JobKey("SalaryHistoryJob");
-            q.AddJob<SalaryHistoryJob>(opts => opts.WithIdentity(salaryJobKey));
-
-            
-            // ✅ Salary History Job: Runs at 22:00 UTC (03:00 AM GMT+5) for testing
-            //TODO: It should run on the first date of the month, AFTER the payroll record job
-            q.AddTrigger(opts => opts
-                    .ForJob(salaryJobKey)
-                    .WithIdentity("SalaryHistoryTrigger")
-                    // Temporary change from monthly to daily for immediate confirmation
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
-                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock
-            );
-
-            // ---
-
-            var anomalyJobKey = new JobKey("SalaryAnomalyJob");
-            q.AddJob<SalaryAnomalyJob>(opts => opts.WithIdentity(anomalyJobKey));
-
-           
-            q.AddTrigger(opts => opts
-                    .ForJob(anomalyJobKey)
-                    .WithIdentity("SalaryAnomalyTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
-                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
+                        .InTimeZone(TimeZoneInfo.Utc))
             );
             
-            //TODO: It should run on the first date of the month, BEFORE the salary history job
+            var recordJobKey = new JobKey("VacationRecordJob");
+            q.AddJob<VacationRecordJob>(opts => opts.WithIdentity(recordJobKey));
+
+            q.AddTrigger(opts => opts
+                .ForJob(recordJobKey)
+                .WithIdentity("VacationRecordTrigger")
+                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute + 5)
+                    .InTimeZone(TimeZoneInfo.Utc))                
+            );
+            
             var payrollJobKey = new JobKey("GeneratePayrollJob");
             q.AddJob<PayrollRecordJob>(opts => opts.WithIdentity(payrollJobKey));
 
             q.AddTrigger(opts => opts
                 .ForJob(payrollJobKey)
-                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
+                .WithSchedule(CronScheduleBuilder.MonthlyOnDayAndHourAndMinute(dayOfMonth: 1, hour: targetHourUtc, minute: targetMinute)
                     .InTimeZone(TimeZoneInfo.Utc))
             );
             
-            // ---
-
-            var recordJobKey = new JobKey("VacationRecordJob");
-            q.AddJob<VacationRecordJob>(opts => opts.WithIdentity(recordJobKey));
-
-            // ✅ Vacation Record Job: Runs at 22:00 UTC (03:00 AM GMT+5)
+            var anomalyJobKey = new JobKey("SalaryAnomalyJob");
+            q.AddJob<SalaryAnomalyJob>(opts => opts.WithIdentity(anomalyJobKey));
+           
             q.AddTrigger(opts => opts
-                    .ForJob(recordJobKey)
-                    .WithIdentity("VacationRecordTrigger")
-                    .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute)
-                        .InTimeZone(TimeZoneInfo.Utc)) // 💡 Force execution using a UTC clock                    
+                .ForJob(anomalyJobKey)
+                .WithIdentity("SalaryAnomalyTrigger")
+                .WithSchedule(CronScheduleBuilder.DailyAtHourAndMinute(targetHourUtc, targetMinute + 10)
+                    .InTimeZone(TimeZoneInfo.Utc))                 
+            );
+
+            var salaryJobKey = new JobKey("SalaryHistoryJob");
+            q.AddJob<SalaryHistoryJob>(opts => opts.WithIdentity(salaryJobKey));
+            
+            q.AddTrigger(opts => opts
+                    .ForJob(salaryJobKey)
+                    .WithIdentity("SalaryHistoryTrigger")
+                    .WithSchedule(CronScheduleBuilder.MonthlyOnDayAndHourAndMinute(dayOfMonth:1, hour:targetHourUtc, minute:targetMinute + 15)
+                        .InTimeZone(TimeZoneInfo.Utc))
             );
         });
-        
-        
 
-        // ✅ Add Quartz Hosted Service (runs scheduler in background)
         builder.Services.AddQuartzHostedService(options =>
         {
             options.WaitForJobsToComplete = true;
         });
-
-
-
+        
         var app = builder.Build();
 
         using (var scope = app.Services.CreateScope())
@@ -237,15 +212,6 @@ public static class Program
             options.RoutePrefix = string.Empty;
         });
         
-        
-        //TODO: Check if we can implement quartz dashboard later
-        // var scheduler = await app.Services.GetRequiredService<ISchedulerFactory>().GetScheduler();
-        
-        // app.UseSilkierQuartz( =>
-        // {
-        //     config.Scheduler = scheduler;
-        // });
-
         app.UseHttpsRedirection();
         app.UseMiddleware<ExceptionHandlingMiddleware>();
         app.UseMiddleware<LoggingMiddleware>();

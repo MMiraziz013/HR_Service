@@ -8,7 +8,7 @@ public interface IVacationRecordService
 {
     Task AutoUpdateVacationStatusesAsync();
     
-    Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto);
+    Task<Response<GetVacationRecordDto>> AddVacationRecordAsync(AddVacationRecordDto dto, decimal actualPaymentAmount);
     Task<PaginatedResponse<GetVacationRecordDto>> GetVacationRecordsAsync(VacationRecordPaginationFilter filter);
 
     Task<Response<GetVacationRecordDto>> GetVacationRecordByIdAsync(int id);

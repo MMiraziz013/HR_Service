@@ -19,14 +19,15 @@ public class VacationRecordController : Controller
     {
         _vacationRecordService = vacationRecordService;
     }
-
-    [HttpPost]
-    [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
-    public async Task<IActionResult> AddVacationRecordAsync(AddVacationRecordDto dto)
-    {
-        var response = await _vacationRecordService.AddVacationRecordAsync(dto);
-        return StatusCode(response.StatusCode, response);    
-    }
+    
+    //
+    // [HttpPost]
+    // [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
+    // public async Task<IActionResult> AddVacationRecordAsync(AddVacationRecordDto dto)
+    // {
+    //     var response = await _vacationRecordService.AddVacationRecordAsync(dto);
+    //     return StatusCode(response.StatusCode, response);    
+    // }
     
     [HttpGet("get_all")]
     [PermissionAuthorize(PermissionConstants.VacationRecords.Manage)]
@@ -163,7 +164,7 @@ public class VacationRecordController : Controller
     // }
 
     [HttpPut("cancel/{id:int}")]
-    [PermissionAuthorize(PermissionConstants.VacationRecords.ManageSelf)]
+    [PermissionAuthorize(PermissionConstants.VacationRecords.View)]
     public async Task<IActionResult> CancelMyRequestAsync(int id)
     {
         var response = await _vacationRecordService.CancelVacationRequestAsync(id);

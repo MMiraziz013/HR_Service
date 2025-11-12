@@ -86,4 +86,30 @@ public class ReportsController : ControllerBase
             fileDownloadName: report.FileName
         );
     }
+
+    [HttpGet("vacation-balance")]
+    [PermissionAuthorize(PermissionConstants.VacationBalance.Manage)]
+    public async Task<IActionResult> DownloadVacationBalanceReportAsync([FromQuery] VacationBalanceReportFilter filter)
+    {
+        var report = await _reportsService.GenerateVacationBalanceReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+            );
+    }
+
+    [HttpGet("vacation-record")]
+    [PermissionAuthorize(PermissionConstants.VacationRecords.Manage)]
+    public async Task<IActionResult> DownloadVacationRecordReportAsync([FromQuery] VacationRecordReportFilter filter)
+    {
+        var report = await _reportsService.GenerateVacationRecordReportAsync(filter);
+
+        return File(
+            fileContents: report.Content,
+            contentType: report.ContentType,
+            fileDownloadName: report.FileName
+            );
+    }
 }
