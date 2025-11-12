@@ -37,7 +37,11 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
             .OrderByDescending(s => s.Month)
             .ToListAsync();
     }
-    
+
+    public async Task<List<SalaryHistory>> GetAllAsync()
+    {
+            return await  _context.SalaryHistories.ToListAsync();
+    }
 
     public async Task<SalaryHistory?> GetByIdAsync(int id)
     {
@@ -207,16 +211,7 @@ public class SalaryHistoryRepository : ISalaryHistoryRepository
             .Select(g => g.OrderByDescending(s => s.Month).First().ExpectedTotal)
             .Average();
     }
-
-    // public async Task<string> GetEmployeeNameAsync(int employeeId)
-    // {
-    //     var employee = await _context.Employees
-    //         .Where(e => e.Id == employeeId)
-    //         .Select(e => e.FirstName)
-    //         .FirstOrDefaultAsync();
-    //
-    //     return employee ?? "Not found";
-    // }
+    
 
 
     public async Task<bool> UpdateSalaryAsync(SalaryHistory salary)

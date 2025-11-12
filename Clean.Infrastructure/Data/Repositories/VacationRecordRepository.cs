@@ -162,4 +162,12 @@ public class VacationRecordRepository : IVacationRecordRepository
             .Where(v => v.Status == VacationStatus.Approved && v.EndDate < today)
             .ToListAsync();
     }
+
+    public async Task<List<VacationRecord>> GetByEmployeeId(int employeeId)
+    {
+        return await _context.VacationRecords
+            .Where(v => v.EmployeeId == employeeId)
+            .OrderByDescending(v => v.StartDate)
+            .ToListAsync();;
+    }
 }
