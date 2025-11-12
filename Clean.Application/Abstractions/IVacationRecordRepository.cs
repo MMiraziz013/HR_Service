@@ -18,4 +18,5 @@ public interface IVacationRecordRepository
     Task<bool> Delete(int id);
 
     Task<List<VacationRecord>> GetVacationsToFinishAsync(DateOnly today);
+    Task<List<VacationRecord>> GetByEmployeeId(int employeeId);
 }

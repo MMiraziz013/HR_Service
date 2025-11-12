@@ -232,29 +232,5 @@ public class PayrollRecordRepository: IPayrollRecordRepository
             .ToListAsync();
     
     }
-   // public async Task<decimal> GetPositionActualAverageAsync(int departmentId, string position)
-   //  {
-   //      var normalizedPosition = position.ToLower();
-   //
-   //      var payrolls = await _context.PayrollRecords
-   //          .Include(s => s.Employee)
-   //          .Where(s => s.Employee.DepartmentId == departmentId &&
-   //                      s.Employee.Position.ToString().ToLower() == normalizedPosition)
-   //          .ToListAsync();
-   //
-   //      return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
-   //  }
-
-    // public async Task<decimal> GetDepartmentActualAverageAsync(int departmentId)
-    // {
-    //     var payrolls = await _context.PayrollRecords
-    //         .Include(s => s.Employee)
-    //         .Where(s => s.Employee.DepartmentId == departmentId)
-    //         .ToListAsync();
-    //     
-    //     return payrolls.Any() ? payrolls.Average(p => p.GrossPay) : 0m;
-    // }
     
-   
-
 }

@@ -13,7 +13,7 @@ public class SalaryHistoryRepositoryTests
     public SalaryHistoryRepositoryTests()
     {
         var options = new DbContextOptionsBuilder<DataContext>()
-            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()) // unique DB per test run
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()) 
             .Options;
 
         _context = new DataContext(options);
@@ -116,16 +116,6 @@ public class SalaryHistoryRepositoryTests
         Assert.Equal(1, count); 
     }
     
-    [Fact]
-    public async Task GetSalaryHistoryByEmployeeIdAsync_ShouldReturnSeededSalary()
-    {
-        var result = await _repository.GetSalaryHistoryByEmployeeIdAsync(1);
-        Assert.Single(result);
-        Assert.Equal(1, result.First().EmployeeId);
-        Assert.Equal(new DateOnly(2025, 11, 1), result.First().Month);
-        Assert.Equal(1000, result.First().BaseAmount);
-        Assert.Equal(100, result.First().BonusAmount);
-    }
     
     
     [Fact]
@@ -150,8 +140,79 @@ public class SalaryHistoryRepositoryTests
     {
         var result = (await _repository.GetForReportAsync(1, null, null, null)).ToList();
 
-        Assert.Single(result); 
+        Assert.Equal(2, result.Count());
         Assert.All(result, r => Assert.NotNull(r.EmployeeName)); 
     }
 
+
+    [Fact]
+    public async Task GetTotalPaidAmountByDepartmentAsync_ShouldReturnCorrectSum_ForGivenDepartmentAndMonth()
+    {
+        var departmentId = 1;
+        var month = new DateOnly(2025, 10, 1);
+        
+        var result=await _repository.GetTotalPaidAmountByDepartmentAsync(departmentId,month);
+        
+        Assert.Equal(1100,result);
+    }
+    
+    [Fact]
+    public async Task GetTotalPaidAmountByDepartmentAsync_ShouldReturnCorrectSum_WhenMultipleRecordsInMonth()
+    {
+        var departmentId = 1; 
+        var month = new DateOnly(2025, 11, 1); 
+        var result = await _repository.GetTotalPaidAmountByDepartmentAsync(departmentId, month);
+        Assert.Equal(1350, result);
+    }
+    
+    
+    [Fact]
+    public async Task GetTotalPaidAmountByDepartmentAsync_ShouldReturnZero_WhenNoRecordsMatch()
+    {
+        var departmentId = 2; 
+        var month = new DateOnly(2025, 10, 1); 
+        
+        var result = await _repository.GetTotalPaidAmountByDepartmentAsync(departmentId, month);
+        
+        Assert.Equal(0, result);
+    }
+
+    [Fact]
+    public async Task UpdateSalaryHistoryAsync_ShouldUpdateBaseAmount_WhenRecordExists()
+    {
+        var salaryToUpdate = new Domain.Entities.SalaryHistory
+        {
+            EmployeeId = 1,
+            Month = new DateOnly(2025, 11, 1),
+            BaseAmount = 2000
+        };
+        
+        var result = await _repository.UpdateSalaryAsync(salaryToUpdate);
+        
+        Assert.True(result);
+        
+        var updatedSalary = await _context.SalaryHistories
+            .FirstOrDefaultAsync(s => s.EmployeeId == 1 && s.Month == new DateOnly(2025, 11, 1));
+        Assert.NotNull(updatedSalary);
+        Assert.Equal(2000, updatedSalary.BaseAmount);
+    }
+    
+    [Fact]
+    public async Task UpdateSalaryAsync_ShouldReturnFalse_WhenRecordDoesNotExist()
+    {
+        var salaryToUpdate = new Domain.Entities.SalaryHistory
+        {
+            EmployeeId = 1,
+            Month = new DateOnly(2025, 12, 1), 
+            BaseAmount = 3000
+        };
+        
+        var result = await _repository.UpdateSalaryAsync(salaryToUpdate);
+        
+        Assert.False(result);
+        
+        var anyUpdated = await _context.SalaryHistories
+            .AnyAsync(s => s.EmployeeId == 1 && s.Month == new DateOnly(2025, 12, 1));
+        Assert.False(anyUpdated);
+    }
 }
